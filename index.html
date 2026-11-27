@@ -2,111 +2,214 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>뉴로커서 — 뉴런 신호로 커서 조종하기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1c">
+<title>뉴로커서 — 생각만으로 커서를 움직여라</title>
 <style>
-  :root{--bg:#0b0f1c;--panel:#151a2b;--panel2:#0f1424;--line:#262d4a;--ink:#e8ecf8;--muted:#98a1bf;
+  :root{--bg:#0b0f1c;--panel:#151a2bee;--panel2:#0f1424;--line:#262d4a;--ink:#e8ecf8;--muted:#98a1bf;
         --hand:#58c4ff;--dec:#b37bff;--tgt:#ffcc4d;--pv:#ff9f43;--ok:#3ddc97;--bad:#ff6b6b}
   *{box-sizing:border-box}
-  html,body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#1d1640 0,var(--bg) 60%) fixed;color:var(--ink);
-    font-family:'Pretendard','맑은 고딕','Malgun Gothic',system-ui,sans-serif}
-  .wrap{max-width:1060px;margin:0 auto;padding:12px 12px 40px}
-  header{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap}
-  h1{font-size:1.35rem;margin:0;letter-spacing:-.02em}
-  h1 span{background:linear-gradient(90deg,var(--hand),var(--dec));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .tag{color:var(--muted);font-size:.82rem}
-  .steps{display:flex;gap:6px;margin:10px 0}
-  .steps div{flex:1;text-align:center;padding:7px 4px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:.8rem;white-space:nowrap}
-  .steps div.on{border-color:var(--dec);color:var(--ink);background:#251c43;box-shadow:0 0 0 2px #b37bff33}
-  .steps div.done{color:var(--ok)}
-  .main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
-  @media(max-width:800px){.main{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px}
-  #pad{width:100%;aspect-ratio:1/1;display:block;border-radius:12px;background:#070a14;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
-  .msg{min-height:3em;margin:10px 2px 6px;font-size:.96rem;line-height:1.5}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','맑은 고딕','Malgun Gothic',system-ui,sans-serif}
+  body{min-height:100vh}
+  #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .hidden{display:none!important}
+  body.title-on .wrap{visibility:hidden}
+  body.title-on{overflow:hidden}
+  button,select{font:inherit;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;background:#252c48;color:var(--ink);font-weight:700}
+  button:disabled{opacity:.35;cursor:default}
+
+  /* ---------- 타이틀 화면 ---------- */
+  #title{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:radial-gradient(800px 500px at 50% 40%,#2a1a5e55,transparent 70%)}
+  .t-badge{font-size:.72rem;letter-spacing:.35em;color:#c9b6ff;border:1px solid #b37bff66;border-radius:99px;padding:5px 14px;background:#b37bff14}
+  .t-logo{margin:18px 0 6px;font-size:clamp(3rem,13vw,6.4rem);line-height:.92;font-weight:900;letter-spacing:-.03em;
+    background:linear-gradient(100deg,#58c4ff 10%,#b37bff 55%,#ff8bd1 95%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 28px #8f5cff66);animation:breathe 3.2s ease-in-out infinite}
+  @keyframes breathe{50%{filter:drop-shadow(0 0 42px #8f5cffaa)}}
+  .t-ko{font-size:1.05rem;color:#d7dcf0;margin:6px 0 30px}
+  .t-ko b{color:#fff}
+  .big{font-size:1.2rem;padding:16px 46px;border-radius:99px;background:linear-gradient(90deg,#7b4dff,#b37bff);color:#fff;
+    box-shadow:0 10px 34px #8f5cff66,inset 0 1px 0 #ffffff44;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.04);box-shadow:0 12px 44px #8f5cff99,inset 0 1px 0 #ffffff44}}
+  .ghost{background:transparent;color:#c6cde4;border:1px solid #39416a;border-radius:99px;padding:10px 22px;margin-top:12px;font-weight:600}
+  .t-best{margin-top:26px;font-size:.88rem;color:var(--muted)}
+  .t-best b{color:var(--tgt)}
+  .t-note{position:absolute;bottom:16px;left:0;right:0;font-size:.72rem;color:#6f789a}
+
+  /* ---------- 미션 브리핑 ---------- */
+  #story{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px;background:#05070fcc;backdrop-filter:blur(6px)}
+  .brief{width:min(520px,100%);background:linear-gradient(160deg,#1b1838,#121629);border:1px solid #b37bff66;border-radius:22px;padding:22px 22px 18px;
+    box-shadow:0 20px 60px #000a,0 0 0 1px #ffffff08 inset;animation:pop .35s ease-out}
+  @keyframes pop{from{transform:translateY(14px) scale(.97);opacity:0}}
+  .b-tag{font-size:.7rem;letter-spacing:.3em;color:#ff8bd1}
+  .brief h2{margin:8px 0 12px;font-size:1.3rem;line-height:1.35}
+  .brief p{margin:0 0 10px;color:#cfd5ea;line-height:1.65;font-size:.95rem;min-height:1.6em}
+  .brief p b{color:#fff}
+  .mlist{display:grid;gap:6px;margin:14px 0 16px}
+  .mlist div{display:flex;gap:10px;align-items:center;background:#0d1122;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.88rem;opacity:0;transform:translateX(-8px);transition:.35s}
+  .mlist div.in{opacity:1;transform:none}
+  .mlist i{font-style:normal;font-size:.68rem;letter-spacing:.12em;color:#c9b6ff;background:#b37bff22;border-radius:6px;padding:2px 6px;white-space:nowrap}
+  .mlist small{color:var(--muted);margin-left:auto;white-space:nowrap}
+  #btnBrief{width:100%;font-size:1.05rem;background:linear-gradient(90deg,#7b4dff,#b37bff);color:#fff;padding:14px}
+  .b-note{text-align:center;font-size:.72rem;color:#6f789a;margin-top:10px}
+
+  /* ---------- 앱 ---------- */
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:10px 12px 40px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .logo{background:none;padding:6px 4px;font-size:1.2rem;font-weight:900;letter-spacing:-.02em;color:#fff}
+  .logo span{background:linear-gradient(90deg,var(--hand),var(--dec));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tabs{display:flex;gap:4px;background:#0d1122cc;border:1px solid var(--line);border-radius:14px;padding:4px}
+  .tabs button{background:none;padding:8px 14px;border-radius:10px;color:var(--muted);font-weight:700;font-size:.9rem;position:relative;display:flex;gap:6px;align-items:center}
+  .tabs button.on{background:#2a2350;color:#fff;box-shadow:0 0 0 1px #b37bff55 inset}
+  .tabs .live{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  @media(max-width:800px){
+    .tabs{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:15;justify-content:space-around;backdrop-filter:blur(10px);background:#0d1122e6;box-shadow:0 -6px 24px #0008}
+    .tabs button{flex-direction:column;gap:1px;font-size:1.15rem;padding:6px 4px;flex:1}
+    .tabs button span{font-size:.68rem}
+    .wrap{padding-bottom:96px}
+  }
+  .tab{display:none}.tab.on{display:block;animation:fade .25s}
+  @keyframes fade{from{opacity:0}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;backdrop-filter:blur(4px)}
+  h3{margin:0 0 8px;font-size:1rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 8px}
+  h3 small{font-weight:400;color:var(--muted);font-size:.75rem}
+  .cap{color:var(--muted);font-size:.86rem;line-height:1.6;margin:0}
+
+  .missions{display:flex;gap:6px;margin:10px 0}
+  .missions div{flex:1;padding:6px 8px;border-radius:12px;background:#0d1122cc;border:1px solid var(--line);color:var(--muted);font-size:.78rem;line-height:1.25;min-width:0}
+  .missions div i{display:block;font-style:normal;font-size:.6rem;letter-spacing:.14em;opacity:.8}
+  .missions div.on{border-color:var(--dec);color:#fff;background:#251c43;box-shadow:0 0 18px #8f5cff33}
+  .missions div.done{color:var(--ok);border-color:#3ddc9755}
+  .missions div.done i:after{content:" ✓"}
+  .game{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:start}
+  @media(max-width:800px){.game{grid-template-columns:1fr}}
+  .padwrap{padding:8px}
+  #pad{width:100%;aspect-ratio:1/1;display:block;border-radius:12px;background:#070a14;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 1px #b37bff22,0 0 40px #8f5cff1a inset}
+  .msg{min-height:3em;margin:2px 2px 8px;font-size:.96rem;line-height:1.55}
   .msg b{color:var(--tgt)}
+  .who{display:flex;gap:10px;align-items:flex-start}
+  .who .av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#2a2350,#1a2a4a);border:1px solid #b37bff55;font-size:1.2rem}
   .bar{height:6px;background:#070a14;border-radius:99px;overflow:hidden}
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--hand),var(--dec));transition:width .1s linear}
   .btns{display:flex;gap:8px;margin-top:10px}
-  button,select{font:inherit;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;background:#252c48;color:var(--ink);font-weight:700}
-  #btnMain{flex:1;background:linear-gradient(90deg,#8f5cff,#b37bff);color:#fff;font-size:1.05rem;box-shadow:0 6px 20px #8f5cff44}
+  #btnMain{flex:1;background:linear-gradient(90deg,#7b4dff,#b37bff);color:#fff;font-size:1.05rem;box-shadow:0 6px 20px #8f5cff44}
   #btnMain.busy{background:#2a2350;color:#cbb8ff;box-shadow:none;cursor:default}
-  button:disabled{opacity:.35;cursor:default}
-  .legend{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:10px}
-  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
-  .side{display:grid;gap:12px}
-  h3{margin:0 0 8px;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;gap:6px}
-  h3 small{font-weight:400;color:var(--muted);font-size:.75rem}
-  .brain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
-  @media(max-width:420px){.brain{grid-template-columns:1fr}#map{max-width:230px;margin:0 auto}}
-  #map{width:100%;aspect-ratio:1/1;display:block}
-  .maplg{font-size:.76rem;color:var(--muted);line-height:1.7}
-  .maplg i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
-  #raster{width:100%;height:150px;display:block;border-radius:10px;background:#070a14;margin-top:10px}
+  #btnMain.ready{animation:pulse 1.6s ease-in-out infinite}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
-  @media(max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
-  .stats div{background:var(--panel2);border-radius:12px;padding:8px 4px;text-align:center;font-size:.72rem;color:var(--muted)}
-  .stats b{display:block;font-size:1.2rem;color:var(--ink);margin-top:2px}
-  .row{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:10px;font-size:.88rem;color:var(--muted)}
-  .row select{padding:8px 10px}
+  .stats div{background:var(--panel2);border-radius:12px;padding:8px 4px;text-align:center;font-size:.7rem;color:var(--muted)}
+  .stats b{display:block;font-size:1.15rem;color:var(--ink);margin-top:2px}
+  .mini{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin-top:10px;background:var(--panel2);border-radius:12px;padding:8px}
+  #mini{width:110px;height:110px;display:block}
+  .mini .cap{font-size:.78rem}
+  .mini button{padding:6px 10px;font-size:.78rem;margin-top:6px;background:#252c48}
+  .row{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:10px;font-size:.85rem;color:var(--muted)}
+  .row select{padding:7px 10px}
   label.chk{display:flex;align-items:center;gap:5px;cursor:pointer}
-  #exp{width:100%;height:210px;display:block;border-radius:10px;background:#070a14;margin-top:8px}
-  .cap{color:var(--muted);font-size:.85rem;line-height:1.55;margin:0}
-  details{margin-top:12px}
-  summary{cursor:pointer;font-weight:700;padding:4px 0}
-  details p,details li{color:#c6cde4;font-size:.9rem;line-height:1.7}
-  footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:16px}
+  .legend{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:8px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+
+  .brain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:center}
+  @media(max-width:560px){.brain{grid-template-columns:1fr}#map{max-width:300px;margin:0 auto}}
+  #map{width:100%;aspect-ratio:1/1;display:block;cursor:crosshair}
+  .maplg{font-size:.84rem;color:var(--muted);line-height:1.8}
+  .maplg i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
+  #raster{width:100%;height:200px;display:block;border-radius:10px;background:#070a14;margin-top:12px}
+  #exp{width:100%;height:260px;display:block;border-radius:10px;background:#070a14;margin-top:10px}
+  .grid2{display:grid;gap:12px;margin-top:10px}
+  .learn ol{padding-left:20px;margin:6px 0}
+  .learn li{color:#c6cde4;font-size:.93rem;line-height:1.75;margin-bottom:6px}
+  #btnNest{width:100%;margin-top:8px;background:linear-gradient(90deg,#1f6f55,#2fae7f);color:#fff;font-size:1rem;box-shadow:0 6px 20px #2fae7f44}
+  body.nest-on .stats, body.nest-on .mini, body.nest-on .legend{display:none}
+  .coins{display:flex;align-items:baseline;justify-content:space-between;margin-top:10px;background:#0f1424;border-radius:12px;padding:10px 12px}
+  .coins span{font-size:1.5rem;font-weight:900;color:var(--tgt)}
+  .coins small{color:var(--muted);font-size:.82rem}
+  .shop{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .shop button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:0 8px;text-align:left;padding:8px 10px;background:#1b2140;border:1px solid var(--line)}
+  .shop button:not(:disabled):hover{border-color:var(--tgt)}
+  .shop .si{grid-row:1/4;font-size:1.4rem;align-self:center}
+  .shop .sn{font-size:.85rem}.shop .sn em{font-style:normal;color:var(--muted);font-size:.72rem}
+  .shop .sd{font-size:.7rem;color:var(--muted);font-weight:500}
+  .shop .sc{font-size:.8rem;color:var(--tgt)}
+  .shop button:disabled{opacity:.45}
+  footer{text-align:center;color:var(--muted);font-size:.76rem;margin-top:16px}
 </style>
 </head>
-<body>
+<body class="title-on">
+<canvas id="bg"></canvas>
+
+<!-- ===== 타이틀 ===== -->
+<div id="title">
+  <div class="t-badge">BCI SIMULATOR</div>
+  <div class="t-logo">NEURO<br>CURSOR</div>
+  <div class="t-ko">뉴로커서 · <b>생각만으로 커서를 움직여라</b></div>
+  <button class="big" id="btnStart">▶ 게임 시작</button>
+  <button class="ghost" id="btnHow">📖 원리 먼저 보기</button>
+  <div class="t-best" id="tBest"></div>
+  <div class="t-note">가상의 이야기 · 모든 뉴런은 수학 모델로 만든 시뮬레이션이에요</div>
+</div>
+
+<!-- ===== 미션 브리핑 ===== -->
+<div id="story" class="hidden">
+  <div class="brief">
+    <div class="b-tag">MISSION BRIEFING</div>
+    <h2>환자 '하늘'의 뇌에<br>전극 <span id="bN">32</span>개가 심어졌다</h2>
+    <p id="s1"></p>
+    <p id="s2"></p>
+    <div class="mlist" id="mlist">
+      <div><i>MISSION 1</i>신호 해독 — 과녁 따라가기<small>15초</small></div>
+      <div><i>MISSION 2</i>첫 움직임 — 연습 과녁 3개<small>자유</small></div>
+      <div><i>MISSION 3</i>의사소통 — 과녁으로 글자 고르기<small>30초</small></div>
+      <div><i>BONUS</i>둥지 대작전 — 알 훔쳐서 키우기<small>무한</small></div>
+    </div>
+    <button id="btnBrief">미션 시작 →</button>
+    <div class="b-note">패드 위 당신의 손 = 하늘 씨가 머릿속으로 상상하는 움직임</div>
+  </div>
+</div>
+
+<!-- ===== 앱 ===== -->
 <div class="wrap">
-  <header>
-    <h1>🧠 <span>뉴로커서</span></h1>
-    <div class="tag">뇌에 심은 전극으로 커서를 움직이는 원리 체험 · 모든 뉴런은 시뮬레이션</div>
+  <header class="top">
+    <button class="logo" id="goTitle" title="타이틀 화면으로">🧠 <span>뉴로커서</span></button>
+    <nav class="tabs" id="tabs">
+      <button data-tab="game" class="on">🎮<span>게임</span></button>
+      <button data-tab="brain">🔬<span>뇌 속 보기</span><i class="live"></i></button>
+      <button data-tab="lab">🧪<span>실험실</span></button>
+      <button data-tab="learn">📖<span>원리</span></button>
+    </nav>
   </header>
 
-  <div class="steps">
-    <div id="st1">① 보정</div>
-    <div id="st2">② 뉴런으로 조종</div>
-    <div id="st3">③ 과녁 게임</div>
-  </div>
-
-  <div class="main">
-    <div class="card">
-      <canvas id="pad" aria-label="조종 패드"></canvas>
-      <div class="msg" id="msg"></div>
-      <div class="bar"><i id="prog"></i></div>
-      <div class="btns">
-        <button id="btnMain">▶ 보정 시작</button>
-        <button id="btnRecal" disabled title="다시 보정">↺ 다시 보정</button>
-      </div>
-      <div class="legend">
-        <span><i class="dot" style="background:var(--hand)"></i>내 손 (뇌가 하려는 움직임)</span>
-        <span><i class="dot" style="background:var(--dec)"></i>디코더 커서 (뉴런 신호만 보고 추정)</span>
-        <span><i class="dot" style="background:var(--tgt)"></i>과녁</span>
-      </div>
+  <!-- 게임 -->
+  <section class="tab on" id="tab-game">
+    <div class="missions">
+      <div id="st1"><i>MISSION 1</i>신호 해독</div>
+      <div id="st2"><i>MISSION 2</i>첫 움직임</div>
+      <div id="st3"><i>MISSION 3</i>의사소통</div>
     </div>
-
-    <div class="side">
+    <div class="game">
+      <div class="card padwrap"><canvas id="pad" aria-label="조종 패드"></canvas></div>
       <div class="card">
-        <h3>🔬 뇌 속 들여다보기 <small>실시간</small></h3>
-        <div class="brain">
-          <canvas id="map" aria-label="뉴런 방향 지도"></canvas>
-          <div class="maplg">
-            점 하나 = 뉴런 하나<br>
-            <b style="color:var(--ink)">점 위치·색</b> = 그 뉴런이 좋아하는 방향<br>
-            <b style="color:var(--ink)">밝기</b> = 지금 발화하는 정도<br>
-            <i style="background:var(--hand)"></i>내 손의 속도<br>
-            <i style="background:var(--pv)"></i>집단 벡터 (뉴런 투표 결과)<br>
-            <i style="background:var(--dec)"></i>디코더 출력
-          </div>
+        <div class="who"><div class="av">👩‍🔬</div><div class="msg" id="msg"></div></div>
+        <div class="bar"><i id="prog"></i></div>
+        <div class="btns">
+          <button id="btnMain">▶ 신호 해독 시작</button>
+          <button id="btnRecal" disabled title="신호 다시 해독">↺ 다시 해독</button>
         </div>
-        <canvas id="raster" aria-label="뉴런 발화 기록"></canvas>
+        <button id="btnNest" class="hidden">🥚 보너스 · 둥지 대작전</button>
+        <div id="nestPanel" class="hidden">
+          <div class="coins"><span>🪙 <b id="nCoins">0</b></span><small id="nRate">+0/초</small></div>
+          <div class="shop" id="shop"></div>
+          <p class="cap" style="margin-top:8px">알: 보통 🐣 +1/초 · 은빛 🐥 +3/초 · 황금 🐲 +10/초 · 무지개 🦄 +30/초<br>귀한 알일수록 무겁고(느려지고) 부엉이가 잘 깨요.</p>
+        </div>
         <div class="stats">
-          <div>디코더 정확도<b id="acc">—</b></div>
-          <div>게임 점수<b id="score">0</b></div>
+          <div>해독 정확도<b id="acc">—</b></div>
+          <div>점수<b id="score">0</b></div>
           <div>최고 점수<b id="best">0</b></div>
-          <div>정보 전송률<b id="itr">—</b></div>
+          <div>전송률<b id="itr">—</b></div>
+        </div>
+        <div class="mini">
+          <canvas id="mini" aria-label="뇌 미니맵"></canvas>
+          <div><p class="cap">하늘 씨의 뇌 (실시간)<br>손을 움직이는 방향의 뉴런이 빛나요.</p><button data-go="brain">🔬 크게 보기</button></div>
         </div>
         <div class="row">
           전극 수
@@ -115,29 +218,61 @@
           <label class="chk"><input type="checkbox" id="snd"> ⚡ 뉴런 소리</label>
           <label class="chk"><input type="checkbox" id="hide" checked> 게임 때 내 손 숨기기</label>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>🧪 전극 수 실험실 <small>자동 시뮬레이션</small></h3>
-        <p class="cap">전극(뉴런)이 많을수록 정말 더 정확할까? 가상의 사람이 15초 보정 + 10초 시험을 전극 수마다 8번씩 반복해요.</p>
-        <canvas id="exp" aria-label="전극 수 실험 결과"></canvas>
-        <div class="btns"><button id="btnExp" style="flex:1">▶ 실험 돌리기</button></div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--hand)"></i>내 손 (하늘 씨가 상상하는 움직임)</span>
+          <span><i class="dot" style="background:var(--dec)"></i>디코더 커서 (뉴런 신호만 보고 추정)</span>
+          <span><i class="dot" style="background:var(--tgt)"></i>과녁</span>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <details class="card">
-    <summary>📖 어떻게 작동하나요?</summary>
-    <ol>
-      <li><b>뉴런마다 좋아하는 방향이 있어요.</b> 운동피질 뉴런은 팔을 특정 방향으로 움직이려 할 때 가장 많이 발화해요(<i>코사인 방향 튜닝</i>, Georgopoulos 1982). "뇌 속 들여다보기"에서 손을 움직이는 방향의 점들이 밝아지는 걸 볼 수 있어요.</li>
-      <li><b>뉴런들의 투표 = 집단 벡터.</b> 각 뉴런이 자기 방향으로 "발화한 만큼" 화살표를 그려 모두 더하면, 손이 움직이는 방향이 나와요(주황 화살표).</li>
-      <li><b>발화는 무작위예요.</b> 같은 움직임이어도 스파이크 수가 매번 달라요(포아송 잡음). 그래서 뉴런이 많을수록 정확해져요 → 전극 수 실험실에서 확인!</li>
-      <li><b>보정 = 디코더 학습.</b> 과녁을 따라가는 동안 "발화 수"와 "실제 손 속도"를 짝지어 기록한 뒤, <i>속도 = Σ(발화 수 × 가중치) + 바이어스</i>가 되는 가중치를 찾아요(리지 회귀). 수업에서 배운 퍼셉트론의 계산과 같은 모양이에요.</li>
-      <li><b>디코딩.</b> 이제 보라색 커서는 손을 보지 않고 뉴런 신호만으로 움직여요. 실제 BCI 연구에서도 사람이 "움직이려는 생각"만으로 이렇게 커서를 조종해요.</li>
-      <li><b>정보 전송률(bits/s).</b> BCI 성능을 비교할 때 쓰는 지표예요. 멀고 작은 과녁을 빨리 맞힐수록 높아요(피츠의 법칙).</li>
-    </ol>
-    <p>※ 이 앱의 뉴런은 모두 수학 모델로 만든 가짜 데이터예요. 실제 뇌 신호나 개인정보는 쓰지 않아요.</p>
-  </details>
+  <!-- 뇌 속 보기 -->
+  <section class="tab" id="tab-brain">
+    <div class="card" style="margin-top:10px">
+      <h3>🔬 하늘 씨의 뇌 속 <small>실시간 · 원 위에서 손가락(마우스)을 움직여 보세요</small></h3>
+      <div class="brain">
+        <canvas id="map" aria-label="뉴런 방향 지도"></canvas>
+        <div class="maplg">
+          점 하나 = 뉴런 하나<br>
+          <b style="color:var(--ink)">점 위치·색</b> = 그 뉴런이 좋아하는 방향<br>
+          <b style="color:var(--ink)">밝기</b> = 지금 발화하는 정도<br>
+          <b style="color:var(--ink)">바깥 보라 눈금</b> = 디코더가 알아낸 방향<br>
+          <i style="background:var(--hand)"></i>내 손의 속도<br>
+          <i style="background:var(--pv)"></i>집단 벡터 (뉴런들의 투표 결과)<br>
+          <i style="background:var(--dec)"></i>디코더 출력
+        </div>
+      </div>
+      <canvas id="raster" aria-label="뉴런 발화 기록"></canvas>
+      <p class="cap" style="margin-top:8px">아래 그림은 뉴런 발화 기록(래스터)이에요. 한 줄이 뉴런 하나이고, 좋아하는 방향 순서로 정렬돼 있어서 손을 돌리면 색깔 "물결"이 지나가요.</p>
+    </div>
+  </section>
+
+  <!-- 실험실 -->
+  <section class="tab" id="tab-lab">
+    <div class="card" style="margin-top:10px">
+      <h3>🧪 전극 수 실험실 <small>자동 시뮬레이션</small></h3>
+      <p class="cap">전극(뉴런)이 많을수록 정말 더 정확할까? 가상의 환자가 15초 보정 + 10초 시험을 전극 수마다 8번씩 반복해요.</p>
+      <canvas id="exp" aria-label="전극 수 실험 결과"></canvas>
+      <div class="btns"><button id="btnExp" style="flex:1">▶ 실험 돌리기</button></div>
+    </div>
+  </section>
+
+  <!-- 원리 -->
+  <section class="tab learn" id="tab-learn">
+    <div class="card" style="margin-top:10px">
+      <h3>📖 어떻게 작동하나요?</h3>
+      <ol>
+        <li><b>뉴런마다 좋아하는 방향이 있어요.</b> 운동피질 뉴런은 팔을 특정 방향으로 움직이려 할 때 가장 많이 발화해요(<i>코사인 방향 튜닝</i>, Georgopoulos 1982). "뇌 속 보기"에서 손을 움직이는 방향의 점들이 밝아지는 걸 볼 수 있어요.</li>
+        <li><b>뉴런들의 투표 = 집단 벡터.</b> 각 뉴런이 자기 방향으로 "발화한 만큼" 화살표를 그려 모두 더하면, 손이 움직이는 방향이 나와요(주황 화살표).</li>
+        <li><b>발화는 무작위예요.</b> 같은 움직임이어도 스파이크 수가 매번 달라요(포아송 잡음). 그래서 뉴런이 많을수록 정확해져요 → 실험실에서 확인!</li>
+        <li><b>신호 해독 = 디코더 학습.</b> 과녁을 따라가는 동안 "발화 수"와 "실제 손 속도"를 짝지어 기록한 뒤, <i>속도 = Σ(발화 수 × 가중치) + 바이어스</i>가 되는 가중치를 찾아요(리지 회귀). 수업에서 배운 퍼셉트론의 계산과 같은 모양이에요.</li>
+        <li><b>디코딩.</b> 이제 보라색 커서는 손을 보지 않고 뉴런 신호만으로 움직여요. 실제 BCI 연구에서도 몸을 움직이기 어려운 사람이 "움직이려는 생각"만으로 커서를 조종하고 글자를 골라요.</li>
+        <li><b>정보 전송률(bits/s).</b> BCI 성능을 비교할 때 쓰는 지표예요. 멀고 작은 과녁을 빨리 맞힐수록 높아요(피츠의 법칙).</li>
+      </ol>
+      <p class="cap">※ 하늘 씨는 가상의 인물이고, 이 앱의 뉴런은 모두 수학 모델로 만든 가짜 데이터예요. 실제 뇌 신호나 개인정보는 쓰지 않아요.</p>
+    </div>
+  </section>
 
   <footer>뉴로커서 · 인공지능 프로그래밍 프로젝트 · 이윤지</footer>
 </div>
@@ -212,6 +347,10 @@ let tPhase = 0, acc = 0, dwellT = 0, calibMove = 0, calibOn = 0;
 let hits = 0, points = 0, combo = 0, lastHitT = -9, bits = 0, tgtDist = .3;
 let vHand = [0,0], vDec = [0,0], vPV = [0,0];
 let particles = [], floaters = [], result = null, flash = 0;
+let practice = 0;                       // 미션 2: 남은 연습 과녁 수
+const PHRASES = ['안녕하세요 다시 이야기할 수 있어서 정말 기뻐요', '고마워요 오늘 날씨가 참 좋네요', '사랑해요 가족들에게 전해 주세요'];
+let phrase = '', typed = '', saidAll = '';   // 미션 3: 과녁 하나 = 글자 하나
+const nextChar = () => phrase.slice(typed.length).trimStart()[0] || '';
 
 /* ================== 소리 ================== */
 let actx = null;
@@ -237,30 +376,36 @@ function tone(f, dur=.18, vol=.12, type='sine', when=0){
 
 /* ================== 입력 ================== */
 const pad = $('pad');
-function setHand(e){
-  const r = pad.getBoundingClientRect();
+// 조종 패드와 "뇌 속 보기"의 뉴런 지도 둘 다 손 입력으로 쓸 수 있다
+function setHand(e, el){
+  const r = el.getBoundingClientRect();
   hand.x = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
   hand.y = Math.min(1, Math.max(0, (e.clientY - r.top)/r.height));
 }
-pad.addEventListener('pointerdown', e => {
-  touching = true; everTouched = true; pad.setPointerCapture(e.pointerId); setHand(e);
-  prevHand = {x:hand.x, y:hand.y};       // 손가락을 다른 곳에 새로 댈 때 "순간이동 속도"가 생기지 않게
-  if(result && phase === 'decode') result = null;
+[pad, $('map')].forEach(el => {
+  el.style.touchAction = 'none';
+  el.addEventListener('pointerdown', e => {
+    touching = true; everTouched = true; el.setPointerCapture(e.pointerId); setHand(e, el);
+    prevHand = {x:hand.x, y:hand.y};     // 손가락을 다른 곳에 새로 댈 때 "순간이동 속도"가 생기지 않게
+    if(result && phase === 'decode') result = null;
+  });
+  el.addEventListener('pointermove', e => { if(touching || e.pointerType === 'mouse'){ if(!everTouched){ everTouched = true; setHand(e, el); prevHand = {...hand}; } setHand(e, el); } });
+  el.addEventListener('pointerup',   () => touching = false);
+  el.addEventListener('pointercancel', () => touching = false);
 });
-pad.addEventListener('pointermove', e => { if(touching || e.pointerType === 'mouse'){ if(!everTouched){ everTouched = true; setHand(e); prevHand = {...hand}; } setHand(e); } });
-pad.addEventListener('pointerup',   () => touching = false);
-pad.addEventListener('pointercancel', () => touching = false);
 
 /* ================== 단계 진행 ================== */
 function setMsg(h){ $('msg').innerHTML = h; }
 function setSteps(){
-  const o = {intro:0, calib:1, decode:2, countdown:3, game:3}[phase];
+  $('btnNest').classList.toggle('hidden', !(phase === 'decode' && W && practice === 0));
+  $('nestPanel').classList.toggle('hidden', phase !== 'nest');
+  const cur = (phase === 'intro' || phase === 'calib') ? 1 : phase === 'decode' ? (practice > 0 ? 2 : 3) : phase === 'nest' ? 4 : 3;
   ['st1','st2','st3'].forEach((id,i) => {
-    const done = o > i+1 || (i === 2 && gamesPlayed > 0 && phase === 'decode');
-    $(id).className = (o === i+1) ? 'on' : (done ? 'done' : '');
+    const done = i+1 < cur || (i === 2 && gamesPlayed > 0 && phase === 'decode');
+    $(id).className = done ? 'done' : (i+1 === cur ? 'on' : '');
   });
 }
-function setMain(label, enabled, busy=false){ const b = $('btnMain'); b.innerHTML = label; b.disabled = !enabled && !busy; b.classList.toggle('busy', busy); }
+function setMain(label, enabled, busy=false, ready=false){ const b = $('btnMain'); b.innerHTML = label; b.disabled = !enabled && !busy; b.classList.toggle('busy', busy); b.classList.toggle('ready', ready); }
 let gamesPlayed = 0;
 
 function resetAll(){
@@ -268,32 +413,33 @@ function resetAll(){
   order = neurons.map((_,i)=>i).sort((a,b)=>neurons[a].th-neurons[b].th);
   feat = neurons.map(n => n.base*DT);
   phase = 'intro'; W = null; rasterBins = []; trail = []; hist = []; result = null; acc = 0;
-  setMain('▶ 보정 시작', true); $('btnRecal').disabled = true;
+  setMain('▶ 신호 해독 시작', true, false, true); $('btnRecal').disabled = true; practice = 0;
   $('prog').style.width = '0'; $('acc').textContent = '—'; $('itr').textContent = '—'; $('score').textContent = 0;
   showBest(); setSteps();
-  setMsg(`👋 가상의 뇌에 <b>전극 ${N}개</b>를 심었어요. 먼저 <b>보정</b>으로 뉴런이 어떻게 반응하는지 배워요.`);
+  setMsg(`<b>MISSION 1 · 신호 해독</b><br>하늘 씨의 운동피질에 <b>전극 ${N}개</b>가 연결됐어요. 먼저 뉴런들이 어떤 움직임에 반응하는지 해독해야 해요.`); $('bN').textContent = N;
 }
 function startCalib(){
   audio();
   phase = 'calib'; tPhase = 0; X = []; Y = []; W = null; hist = []; acc = 0; calibMove = 0; calibOn = 0; result = null;
   calibPath = makePath(13); target = {...pathAt(calibPath, CALIB_SEC, 0), r:R_START};
-  setMain('보정 중…', false, true); $('btnRecal').disabled = true; $('acc').textContent = '—';
-  setMsg('🟡 노란 과녁을 <b>손가락(마우스)으로 계속 따라가세요.</b> 그동안 뉴런들이 어느 방향에서 발화하는지 기록해요.');
+  setMain('신호 해독 중…', false, true); practice = 0; $('btnRecal').disabled = true; $('acc').textContent = '—';
+  setMsg('<b>노란 과녁을 손가락(마우스)으로 계속 따라가세요.</b><br>하늘 씨가 같은 움직임을 상상하는 동안 어떤 뉴런이 발화하는지 기록하고 있어요.');
   setSteps(); tone(660,.12);
 }
 function endCalib(){
   const total = X.length;
   if(calibMove < total*0.35){            // 손을 거의 안 움직였으면 학습할 데이터가 없음
     phase = 'intro'; setSteps(); $('prog').style.width = '0';
-    setMain('▶ 보정 다시 하기', true);
-    setMsg('🤔 손이 거의 움직이지 않아서 뉴런 데이터가 부족해요. <b>과녁을 따라 패드 위에서 계속 움직이며</b> 다시 보정해 주세요.');
+    setMain('▶ 신호 다시 해독', true, false, true);
+    setMsg('🤔 손이 거의 움직이지 않아서 신호가 부족해요. <b>과녁을 따라 패드 위에서 계속 움직이며</b> 다시 해독해 주세요.');
     tone(220,.3,.12,'triangle'); return;
   }
   W = fitRidge(X, Y, N);
   phase = 'decode'; tPhase = 0; dec = {x:hand.x, y:hand.y}; trail = []; hist = [];
-  setMain('🎯 게임 시작', true); $('btnRecal').disabled = false;
+  practice = 3; hits = 0; newTarget(); target.r = R_START*1.1;
+  setMain('⏭ 연습 건너뛰기', true); $('btnRecal').disabled = false;
   const follow = Math.round(calibOn/total*100);
-  setMsg(`✅ 디코더 학습 완료! (과녁 따라가기 ${follow}%) 이제 <b>보라색 커서는 손이 아니라 뉴런 신호만 보고</b> 움직여요. 자유롭게 움직여 보고 준비되면 게임을 시작하세요.`);
+  setMsg(`✅ 해독 성공! (과녁 따라가기 ${follow}%)<br><b>MISSION 2 · 첫 움직임</b> 이제 <b>보라색 커서</b>는 하늘 씨의 뉴런 신호만으로 움직여요. 연습 과녁 <b>3개</b>에 커서를 잠깐 머물게 해 보세요.`);
   $('prog').style.width = '100%'; setSteps();
   tone(784,.12); tone(1046,.2,.12,'sine',.1);
 }
@@ -303,12 +449,19 @@ function newTarget(){
   do { p = {x:.1+Math.random()*.8, y:.1+Math.random()*.8}; tries++; } while(Math.hypot(p.x-dec.x, p.y-dec.y) < .3 && tries < 30);
   target = {x:p.x, y:p.y, r}; tgtDist = Math.hypot(p.x-dec.x, p.y-dec.y); dwellT = 0;
 }
+function practiceDone(){
+  practice = 0; setSteps();
+  setMain('🎯 MISSION 3 시작', true, false, true);
+  setMsg('🎉 하늘 씨가 처음으로 커서를 움직였어요!<br><b>MISSION 3 · 의사소통</b> 과녁 하나가 글자 하나예요. 30초 동안 과녁을 맞혀서 하늘 씨의 첫 문장을 완성해 주세요.<br>🥚 보너스 <b>둥지 대작전</b>도 열렸어요!');
+  [659,784,1046].forEach((f,i)=>tone(f,.18,.12,'triangle',i*.1));
+}
 function startCountdown(){
-  audio(); phase = 'countdown'; tPhase = 0; result = null;
+  audio(); phase = 'countdown'; tPhase = 0; result = null; practice = 0;
+  phrase = PHRASES[gamesPlayed % PHRASES.length]; typed = ''; saidAll = '';
   hits = 0; points = 0; combo = 0; bits = 0; lastHitT = -9; particles = []; floaters = [];
   dec = {x:.5,y:.5}; trail = []; $('score').textContent = 0;
-  setMain('게임 중…', false, true); $('btnRecal').disabled = true; $('nSel').disabled = true;
-  setMsg('🎯 <b>보라색 커서</b>를 과녁 안에 잠깐 머물게 하면 득점! 빨리 연속으로 맞히면 <b>콤보</b>, 과녁은 점점 작아져요.');
+  setMain('의사소통 중…', false, true); $('btnRecal').disabled = true; $('nSel').disabled = true;
+  setMsg('<b>MISSION 3 · 의사소통</b><br>보라색 커서를 과녁 안에 잠깐 머물게 하면 글자 선택! 빨리 연속으로 맞히면 <b>콤보</b>, 과녁은 점점 작아져요.');
   setSteps();
 }
 function startGame(){ phase = 'game'; tPhase = 0; newTarget(); tone(988,.25,.14); }
@@ -323,17 +476,20 @@ function endGame(){
   const bps = bits/GAME_SEC, isBest = points > best;
   if(isBest) localStorage.setItem(key, points);
   gamesPlayed++; showBest();
-  result = {hits, points, bps, acc, isBest, g:grade(bps), t:performance.now()};
+  result = {hits, points, bps, acc, isBest, g:grade(bps), t:performance.now(), said:(saidAll + typed).replace(/[\s\/]+$/, '')};
   $('itr').textContent = bps.toFixed(2);
   phase = 'decode'; tPhase = 0;
-  setMain('🎯 다시 도전', true); $('btnRecal').disabled = false; $('nSel').disabled = false;
-  setMsg(`⏱️ 끝! 뉴런 ${N}개로 <b>${hits}개</b> 맞혀 <b>${points}점</b>, 정보 전송률 <b>${bps.toFixed(2)} bits/s</b>.${isBest?' 🏆 최고 기록!':''} 전극 수를 바꿔서 다시 도전해 보세요.`);
+  setMain('🎯 다시 도전', true, false, true); $('btnRecal').disabled = false; $('nSel').disabled = false;
+  setMsg(`⏱️ 미션 완료! 하늘 씨가 글자 <b>${hits}개</b>를 골랐어요: “${result.said || '…'}”<br><b>${points}점</b> · 정보 전송률 <b>${bps.toFixed(2)} bits/s</b>${isBest?' · 🏆 최고 기록!':''}<br>전극 수를 바꿔서 다시 도전해 보세요.`);
   setSteps();
   if(isBest){ [784,988,1175,1568].forEach((f,i)=>tone(f,.22,.13,'triangle',i*.11)); }
   else { tone(659,.2); tone(523,.3,.12,'sine',.15); }
 }
-function showBest(){ $('best').textContent = localStorage.getItem('neurocursor-best2-' + N) || 0; }
-$('btnMain').onclick = () => { if(phase === 'intro') startCalib(); else if(phase === 'decode') startCountdown(); };
+function showBest(){ $('best').textContent = localStorage.getItem('neurocursor-best2-' + N) || 0;
+  let b = 0, bn = 0; [8,16,32,64,96].forEach(n => { const v = Number(localStorage.getItem('neurocursor-best2-' + n) || 0); if(v > b){ b = v; bn = n; } });
+  $('tBest').innerHTML = b ? `🏆 최고 기록 <b>${b}점</b> (전극 ${bn}개)` : '처음 오셨나요? 3분이면 끝까지 해 볼 수 있어요'; }
+$('btnNest').onclick = () => enterNest();
+$('btnMain').onclick = () => { if(phase === 'nest') return exitNest(); if(phase === 'intro') startCalib(); else if(phase === 'decode'){ if(practice > 0) practiceDone(); else startCountdown(); } };
 $('btnRecal').onclick = startCalib;
 $('nSel').onchange = resetAll;
 $('snd').onchange = e => { if(e.target.checked) audio(); };
@@ -347,6 +503,7 @@ function burst(x, y, color, n=26){
 
 /* ================== 한 bin(50ms) 계산 ================== */
 function tick(){
+  nestIncome();
   let vx = (hand.x - prevHand.x)/DT, vy = (hand.y - prevHand.y)/DT;
   prevHand = {x:hand.x, y:hand.y};
   vx = Math.max(-4, Math.min(4, vx)); vy = Math.max(-4, Math.min(4, vy));
@@ -377,14 +534,25 @@ function tick(){
   if(!W) return;
   const [dvx, dvy] = decodeW(W, feat, N);
   vDec = [vDec[0]*.6 + .4*dvx, vDec[1]*.6 + .4*dvy];
-  dec.x = Math.min(1, Math.max(0, dec.x + dvx*DT));
-  dec.y = Math.min(1, Math.max(0, dec.y + dvy*DT));
+  const spd = nestSpeed();
+  dec.x = Math.min(1, Math.max(0, dec.x + dvx*DT*spd));
+  dec.y = Math.min(1, Math.max(0, dec.y + dvy*DT*spd));
   trail.push({x:dec.x, y:dec.y}); if(trail.length > 40) trail.shift();
   hist.push([vx, vy, dvx, dvy]); if(hist.length > 120) hist.shift();
   if(hist.filter(h => Math.hypot(h[0],h[1]) > .05).length > 30){
     const cx = corr(hist.map(h=>h[0]), hist.map(h=>h[2])), cy = corr(hist.map(h=>h[1]), hist.map(h=>h[3]));
     const vals = [cx,cy].filter(v => v !== null);
     if(vals.length){ acc = Math.max(0, vals.reduce((a,b)=>a+b,0)/vals.length); $('acc').textContent = Math.round(acc*100) + '%'; }
+  }
+  if(phase === 'nest') nestTick();
+  if(phase === 'decode' && practice > 0){
+    if(Math.hypot(dec.x-target.x, dec.y-target.y) < target.r){
+      dwellT += DT;
+      if(dwellT >= DWELL){ practice--; burst(target.x, target.y, '#3ddc97', 24); flash = .2;
+        floaters.push({x:target.x, y:target.y, txt: practice ? `연습 ${3-practice}/3` : '성공!', life:1});
+        tone(660 + (3-practice)*120, .16, .14, 'triangle');
+        if(practice > 0){ newTarget(); target.r = R_START*1.1; } else practiceDone(); }
+    } else dwellT = Math.max(0, dwellT - DT*2);
   }
   if(phase === 'countdown'){
     const before = Math.ceil(COUNT_SEC - tPhase); tPhase += DT; const after = Math.ceil(COUNT_SEC - tPhase);
@@ -399,6 +567,9 @@ function tick(){
       if(dwellT >= DWELL){
         combo = (tPhase - lastHitT < 3) ? Math.min(5, combo+1) : 1; lastHitT = tPhase;
         const gain = 100*combo; hits++; points += gain;
+        const ch = nextChar();
+        if(ch){ typed = phrase.slice(0, phrase.indexOf(ch, typed.length) + 1);
+          if(typed.length >= phrase.length){ saidAll += typed + ' / '; typed = ''; phrase = PHRASES[(PHRASES.indexOf(phrase)+1) % PHRASES.length]; } }
         bits += Math.log2(tgtDist/(2*target.r) + 1);                  // 피츠의 법칙 난이도
         $('score').textContent = points;
         burst(target.x, target.y, combo > 1 ? '#ff9f43' : '#ffcc4d', 20 + combo*6);
@@ -439,8 +610,9 @@ function drawPad(now){
   const P = p => [p.x*w, p.y*h], F = s => `700 ${s*dpr}px 'Pretendard','Malgun Gothic',sans-serif`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
 
+  if(phase === 'nest') drawNest(g, w, h, dpr, F, now);
   // 과녁
-  if(phase === 'calib' || phase === 'game'){
+  if(phase === 'calib' || phase === 'game' || (phase === 'decode' && practice > 0)){
     const [tx,ty] = P(target), R = target.r*w, pulse = 1 + .06*Math.sin(now/180);
     const on = phase === 'calib' && Math.hypot(hand.x-target.x, hand.y-target.y) < R_START*1.6;
     const col = on ? '#3ddc97' : '#ffcc4d';
@@ -449,7 +621,8 @@ function drawPad(now){
     g.beginPath(); g.arc(tx,ty,R*pulse,0,7); g.stroke();
     g.beginPath(); g.arc(tx,ty,R*.45,0,7); g.stroke();
     g.shadowBlur = 0;
-    if(phase === 'game' && dwellT > 0){ g.fillStyle = 'rgba(255,204,77,.4)';
+    if(phase === 'game'){ const ch = nextChar(); if(ch){ g.fillStyle = '#fff'; g.font = F(Math.max(12, target.r*w/dpr*.55)); g.fillText(ch, tx, ty + 1*dpr); } }
+    if((phase === 'game' || phase === 'decode') && dwellT > 0){ g.fillStyle = 'rgba(255,204,77,.4)';
       g.beginPath(); g.moveTo(tx,ty); g.arc(tx,ty,R,-Math.PI/2,-Math.PI/2+2*Math.PI*Math.min(1,dwellT/DWELL)); g.fill(); }
   }
   // 디코더 커서
@@ -462,16 +635,17 @@ function drawPad(now){
     g.fillStyle = '#fff'; g.beginPath(); g.arc(dx,dy,3.5*dpr,0,7); g.fill();
   }
   // 내 손
-  const showHand = everTouched && !((phase === 'game' || phase === 'countdown') && $('hide').checked);
+  const showHand = everTouched && !((phase === 'game' || phase === 'countdown' || phase === 'nest') && $('hide').checked);
   if(showHand){ const [hx,hy] = P(hand); g.strokeStyle = '#58c4ff'; g.lineWidth = 2.5*dpr;
     g.beginPath(); g.arc(hx,hy,13*dpr,0,7); g.stroke(); g.beginPath(); g.moveTo(hx-5*dpr,hy); g.lineTo(hx+5*dpr,hy); g.moveTo(hx,hy-5*dpr); g.lineTo(hx,hy+5*dpr); g.stroke(); }
+  if(phase === 'nest') drawNestTop(g, w, h, dpr, F, now);
   // 입자, 점수 글자
   particles = particles.filter(p => (p.life -= fdt*1.6) > 0);
   particles.forEach(p => { p.x += p.vx*fdt; p.y += p.vy*fdt; p.vx *= .94; p.vy *= .94;
     g.globalAlpha = p.life; g.fillStyle = p.color; g.beginPath(); g.arc(p.x*w, p.y*h, 3*dpr*p.life+1, 0, 7); g.fill(); });
   g.globalAlpha = 1;
   floaters = floaters.filter(f => (f.life -= fdt*1.1) > 0);
-  floaters.forEach(f => { g.globalAlpha = Math.min(1, f.life*1.5); g.fillStyle = '#fff'; g.font = F(18);
+  floaters.forEach(f => { g.globalAlpha = Math.min(1, f.life*1.5); g.fillStyle = f.small ? '#ffcc4d' : '#fff'; g.font = F(f.small ? 12 : 18);
     g.fillText(f.txt, f.x*w, (f.y - (1-f.life)*.08)*h - 26*dpr); });
   g.globalAlpha = 1;
 
@@ -486,6 +660,11 @@ function drawPad(now){
     hudPill(g, 12*dpr, 12*dpr, `⏱ ${left.toFixed(1)}`, dpr, F, left < 5 ? '#ff6b6b' : null);
     g.textAlign = 'right'; g.font = F(16); g.fillStyle = '#fff';
     g.fillText(`${points}점`, w - 14*dpr, 26*dpr);
+    const bw = Math.min(w - 24*dpr, 420*dpr);
+    g.fillStyle = 'rgba(7,10,20,.75)'; rrect(g, (w-bw)/2, h - 44*dpr, bw, 32*dpr, 10*dpr); g.fill();
+    g.textAlign = 'center'; g.font = F(15); g.fillStyle = '#fff';
+    let shown = typed + '▌'; while(g.measureText(shown).width > bw - 20*dpr && shown.length > 2) shown = shown.slice(1);
+    g.fillText(shown, w/2, h - 28*dpr); g.textAlign = 'right';
     if(combo > 1 && tPhase - lastHitT < 3){ g.fillStyle = '#ff9f43'; g.font = F(13); g.fillText(`콤보 ×${combo}`, w - 14*dpr, 48*dpr); }
     g.textAlign = 'center';
   }
@@ -493,17 +672,21 @@ function drawPad(now){
     const n = Math.ceil(COUNT_SEC - tPhase), fr = (COUNT_SEC - tPhase) % 1;
     g.fillStyle = 'rgba(7,10,20,.45)'; g.fillRect(0,0,w,h);
     g.fillStyle = '#fff'; g.font = F(60 + 40*fr); g.fillText(n, w/2, h/2);
-    g.font = F(14); g.fillStyle = '#c9b6ff'; g.fillText('보라색 커서만 보고 조종하세요', w/2, h/2 + 70*dpr);
+    g.font = F(14); g.fillStyle = '#c9b6ff'; g.fillText('과녁 = 글자 · 보라색 커서만 보고 조종하세요', w/2, h/2 + 70*dpr);
   }
   if(phase === 'intro'){
-    g.fillStyle = 'rgba(232,236,248,.9)'; g.font = F(17); g.fillText('여기가 조종 패드예요', w/2, h*.38);
+    const pr = 1 + .08*Math.sin(now/300);
+    g.strokeStyle = 'rgba(179,123,255,.4)'; g.lineWidth = 2*dpr; g.beginPath(); g.arc(w/2, h*.3, 32*dpr*pr, 0, 7); g.stroke();
+    g.font = F(30); g.fillText('🧠', w/2, h*.3);
+    g.fillStyle = 'rgba(232,236,248,.95)'; g.font = F(17); g.fillText('여기가 하늘 씨의 조종 패드예요', w/2, h*.3 + 60*dpr);
     g.fillStyle = '#98a1bf'; g.font = F(14);
-    g.fillText('아래 ▶ 보정 시작을 누르고', w/2, h*.38 + 30*dpr);
-    g.fillText('노란 과녁을 15초 동안 따라가세요', w/2, h*.38 + 52*dpr);
+    g.fillText('▶ 신호 해독 시작을 누르고', w/2, h*.3 + 88*dpr);
+    g.fillText('노란 과녁을 15초 동안 따라가세요', w/2, h*.3 + 110*dpr);
   }
+  if(phase === 'decode' && practice > 0 && !result) hudPill(g, 12*dpr, 12*dpr, `연습 과녁 ${3-practice}/3`, dpr, F, '#3ddc97');
   if(phase === 'decode' && !result){
-    g.fillStyle = 'rgba(201,182,255,.55)'; g.font = F(13);
-    g.fillText('자유 조종 중 · 손을 움직이면 보라색 커서가 뉴런 신호로 따라와요', w/2, h - 18*dpr);
+    g.fillStyle = 'rgba(201,182,255,.6)'; g.font = F(13);
+    g.fillText(practice > 0 ? '보라색 커서를 노란 과녁 안에 잠깐 머물게 하세요' : '자유 조종 중 · 손을 움직이면 보라색 커서가 뉴런 신호로 따라와요', w/2, h - 18*dpr);
   }
   if(result) drawResult(g, w, h, dpr, F, now);
 }
@@ -517,22 +700,25 @@ function hudPill(g, x, y, txt, dpr, F, color){
 function drawResult(g, w, h, dpr, F, now){
   const a = Math.min(1, (now - result.t)/300);
   g.globalAlpha = a; g.fillStyle = 'rgba(7,10,20,.78)'; g.fillRect(0,0,w,h);
-  const cw = Math.min(w*.84, 340*dpr), ch = Math.min(h*.8, 290*dpr), x = (w-cw)/2, y = (h-ch)/2;
+  const cw = Math.min(w*.88, 360*dpr), ch = Math.min(h*.86, 330*dpr), x = (w-cw)/2, y = (h-ch)/2;
   g.fillStyle = '#171c30'; g.strokeStyle = '#b37bff'; g.lineWidth = 2*dpr; rrect(g, x, y, cw, ch, 18*dpr); g.fill(); g.stroke();
   const cxm = w/2; let yy = y + ch*.16;
   g.font = F(34); g.fillStyle = '#fff'; g.fillText(result.g[0], cxm, yy);
   yy += ch*.15; g.font = F(19); g.fillStyle = '#c9b6ff'; g.fillText(result.g[1], cxm, yy);
-  yy += ch*.17; g.font = F(30); g.fillStyle = '#ffcc4d'; g.fillText(`${result.points}점`, cxm, yy);
-  if(result.isBest){ g.font = F(13); g.fillStyle = '#3ddc97'; g.fillText('🏆 최고 기록!', cxm, yy + ch*.1); }
-  const items = [['맞힌 과녁', result.hits + '개'], ['디코더 정확도', Math.round(result.acc*100) + '%'], ['전송률', result.bps.toFixed(2) + ' b/s']];
-  items.forEach((it,i) => { const ix = x + cw*(i+.5)/3, iy = y + ch*.8;
+  yy += ch*.15; g.font = F(30); g.fillStyle = '#ffcc4d'; g.fillText(`${result.points}점`, cxm, yy);
+  if(result.isBest){ g.font = F(12); g.fillStyle = '#3ddc97'; g.fillText('🏆 최고 기록!', cxm, yy + ch*.085); }
+  { let t = `“${result.said || '…'}”`; g.font = F(13); g.fillStyle = '#e8ecf8';
+    while(g.measureText(t).width > cw - 28*dpr && t.length > 4) t = t.slice(0, -3) + '…”';
+    g.fillText(t, cxm, y + ch*.66); }
+  const items = [['고른 글자', result.hits + '개'], ['디코더 정확도', Math.round(result.acc*100) + '%'], ['전송률', result.bps.toFixed(2) + ' b/s']];
+  items.forEach((it,i) => { const ix = x + cw*(i+.5)/3, iy = y + ch*.79;
     g.font = F(11); g.fillStyle = '#98a1bf'; g.fillText(it[0], ix, iy);
     g.font = F(16); g.fillStyle = '#fff'; g.fillText(it[1], ix, iy + 20*dpr); });
   g.font = F(11); g.fillStyle = '#6f789a'; g.fillText('패드를 터치하면 닫혀요', cxm, y + ch + 16*dpr);
   g.globalAlpha = 1;
 }
-function drawMap(){
-  const [g, w, h, dpr] = fitCanvas($('map'));
+function drawMap(c){
+  const [g, w, h, dpr] = fitCanvas(c);
   g.clearRect(0,0,w,h);
   const cx = w/2, cy = h/2, R0 = Math.min(w,h)*.38;
   g.strokeStyle = '#262d4a'; g.lineWidth = 1*dpr;
@@ -626,16 +812,293 @@ function drawExp(prog=1){
   if(prog < 1){ g.fillStyle = '#b37bff'; g.fillRect(L, h-3*dpr, (Rr-L)*prog, 3*dpr); }
 }
 
+/* ================== 🥚 둥지 대작전 (보너스 모드) ==================
+   잠꾸러기 부엉이가 자는 동안 디코더 커서로 알을 훔쳐 내 둥지로 가져온다.
+   부엉이가 깨어 있을 때 커서가 움직이면 들킨다 → 뉴런 신호로 "가만히 있기"가 핵심.
+   태어난 친구들이 코인을 벌고, 코인으로 업그레이드(전극 추가 = 커서가 덜 흔들림)를 산다. */
+const EGGS = {
+  common: {name:'보통 알',   col:'#f3ead8', hatch:3,  speed:.9,  wake:.12, mon:'🐣', mname:'꼬마 뉴런새',     rate:1,  w:60},
+  silver: {name:'은빛 알',   col:'#9fd8ff', hatch:5,  speed:.8,  wake:.3,  mon:'🐥', mname:'스파크새',        rate:3,  w:28},
+  gold:   {name:'황금 알',   col:'#ffcc4d', hatch:8,  speed:.7,  wake:.55, mon:'🐲', mname:'시냅스 드래곤',   rate:10, w:10},
+  rainbow:{name:'무지개 알', col:'rainbow', hatch:12, speed:.62, wake:.8,  mon:'🦄', mname:'무지개 뉴런콘',   rate:30, w:2},
+};
+const HOME = {x:.17, y:.83, r:.17}, GNEST = {x:.78, y:.2, r:.15};
+const EGG_SLOTS = [{x:.69,y:.13},{x:.87,y:.14},{x:.78,y:.31}];
+const VISION = .3, G_SPEED = .38, ELEC_STEPS = [32,64,96];
+const SHOP = [
+  {id:'spd',  icon:'🏃', name:'디코더 가속', desc:'커서 속도 +15%',            max:5, cost:l => Math.round(20*Math.pow(2,l))},
+  {id:'slot', icon:'🏠', name:'둥지 칸 +1',  desc:'키울 수 있는 친구 +1',       max:6, cost:l => Math.round(25*Math.pow(1.8,l))},
+  {id:'lull', icon:'🎵', name:'자장가',      desc:'부엉이가 더 깊이 잠들어요',  max:4, cost:l => Math.round(40*Math.pow(2.2,l))},
+  {id:'elec', icon:'⚡', name:'전극 추가',   desc:'뉴런이 늘어 커서가 덜 흔들려요', max:2, cost:l => [80,400][l]},
+];
+function loadNest(){
+  let s = null; try{ s = JSON.parse(localStorage.getItem('neurocursor-nest')); }catch(e){}
+  if(!s || s.v !== 1) s = {v:1, coins:0, mons:[], up:{spd:0,slot:0,lull:0,elec:0}, t:Date.now()};
+  const rate = s.mons.reduce((a,m) => a + EGGS[m].rate, 0), away = Math.min(3600, Math.max(0, (Date.now() - s.t)/1000));
+  s.offline = Math.floor(away*rate*.5); s.coins += s.offline;          // 자리를 비운 동안 번 돈 (절반, 최대 1시간)
+  return s;
+}
+let NS = loadNest(), nest = null, nestSaveT = 0, nestUiT = 0;
+function saveNest(){ NS.t = Date.now(); const {offline, ...keep} = NS; localStorage.setItem('neurocursor-nest', JSON.stringify(keep)); }
+const nestRate = () => NS.mons.reduce((a,m) => a + EGGS[m].rate, 0);
+const nestSlots = () => 4 + NS.up.slot;
+const sleepDur = () => (4.5 + Math.random()*3.5)*(1 + .25*NS.up.lull);
+function rollEgg(){ let r = Math.random()*100;
+  for(const k of ['rainbow','gold','silver','common']){ r -= EGGS[k].w; if(r < 0) return k; } return 'common'; }
+function nestSpeed(){ if(phase !== 'nest') return 1; if(nest.stun > 0) return 0;
+  return (1 + .15*NS.up.spd) * (nest.carry ? EGGS[nest.carry].speed : 1); }
+function homeSpot(i){ const n = Math.max(nestSlots(), 4), a = -Math.PI/2 + i*2*Math.PI/n; return {x:HOME.x + Math.cos(a)*HOME.r*.62, y:HOME.y + Math.sin(a)*HOME.r*.62}; }
+
+/* 전극 업그레이드: 늘어난 전극으로 가상 보정을 자동으로 돌려 디코더를 다시 학습 */
+function autoCalib(n){
+  $('nSel').value = n; N = n; neurons = makePop(n);
+  order = neurons.map((_,i)=>i).sort((a,b)=>neurons[a].th-neurons[b].th);
+  feat = neurons.map(nr => nr.base*DT); rasterBins = []; hist = [];
+  const path = makePath(16), f = [...feat], Xs = [], Ys = []; let ph = {x:.5,y:.5};
+  for(let t=0;t<CALIB_SEC;t+=DT){
+    const tg = pathAt(path, CALIB_SEC, t);
+    const nh = {x:ph.x + (tg.x-ph.x)*.5, y:ph.y + (tg.y-ph.y)*.5};
+    const vx = (nh.x-ph.x)/DT, vy = (nh.y-ph.y)/DT; ph = nh;
+    const sp = firePop(neurons, vx, vy); for(let i=0;i<n;i++) f[i] = .5*f[i] + .5*sp[i];
+    Xs.push([...f, 1]); Ys.push([vx, vy]);
+  }
+  W = fitRidge(Xs, Ys, n); showBest();
+}
+
+function enterNest(){
+  if(!W) return;
+  audio(); result = null; practice = 0;
+  const want = ELEC_STEPS[NS.up.elec]; let note = '';
+  if(N < want){ autoCalib(want); note = ` (전극 ${want}개로 자동 보정했어요)`; }
+  phase = 'nest'; tPhase = 0; dec = {x:HOME.x, y:HOME.y}; trail = []; particles = []; floaters = [];
+  nest = {eggs: EGG_SLOTS.map(() => rollEgg()), respawn:[0,0,0], carry:null, grab:0, grabIdx:-1, incub:[], stun:0, run:0, full:0,
+          g:{x:GNEST.x, y:GNEST.y, st:'sleep', t:0, dur:sleepDur()}, coinT:0, stolen:0, caught:0};
+  document.body.classList.add('nest-on'); $('nSel').disabled = true;
+  setMain('🏁 둥지에서 나가기', true); $('btnRecal').disabled = true; setSteps();
+  const off = NS.offline ? `<br>💤 자리를 비운 동안 친구들이 <b>🪙 ${NS.offline}</b>을 벌어 왔어요!` : '';
+  NS.offline = 0;
+  setMsg(`🥚 <b>둥지 대작전</b>${note}<br>부엉이가 <b>자는 동안</b> 알을 훔쳐 왼쪽 아래 <b>내 둥지</b>로 가져오세요. 부엉이가 깨어 있으면 <b>커서를 멈추세요!</b>${off}`);
+  renderShop(); tone(523,.1); tone(659,.1,.12,'sine',.08); tone(784,.18,.12,'sine',.16);
+}
+function exitNest(){
+  if(nest && nest.carry){ nest.carry = null; }
+  phase = 'decode'; nest = null; document.body.classList.remove('nest-on'); $('nSel').disabled = false;
+  saveNest(); result = null; dec = {x:.5,y:.5};
+  setMain(gamesPlayed ? '🎯 다시 도전' : '🎯 MISSION 3 시작', true, false, true); $('btnRecal').disabled = false; setSteps();
+  setMsg(`🏠 둥지에서 나왔어요. 친구들은 계속 코인을 벌고 있어요 (<b>🪙 +${nestRate()}/초</b>).`);
+}
+function startChase(byGrab){
+  const g = nest.g; g.st = 'chase'; g.t = 0; nest.run = 1.6;
+  [880,660,880,660].forEach((f,i) => tone(f,.12,.13,'square',i*.13));
+  floaters.push({x:g.x, y:g.y, txt: byGrab ? '알을 들켰다! 도망쳐!' : '움직이는 걸 들켰다!', life:1});
+}
+function caught(){
+  const g = nest.g;
+  if(nest.carry){ const i = nest.eggs.findIndex(e => !e); if(i >= 0){ nest.eggs[i] = nest.carry; nest.respawn[i] = 0; } nest.carry = null; }
+  nest.stun = 1.3; nest.caught++; flash = .5;
+  floaters.push({x:dec.x, y:dec.y, txt:'💫 잡혔다! 알을 빼앗겼어요', life:1});
+  tone(196,.35,.15,'sawtooth'); g.st = 'return'; g.t = 0;
+}
+function nestIncome(){
+  const rate = nestRate();
+  if(rate) NS.coins += rate*DT;
+  nestSaveT += DT; if(nestSaveT > 5){ nestSaveT = 0; if(rate || phase === 'nest') saveNest(); }
+  nestUiT += DT; if(nestUiT > .25 && phase === 'nest'){ nestUiT = 0; updateNestUi(); }
+}
+function nestTick(){
+  const g = nest.g;
+  if(nest.stun > 0) nest.stun -= DT;
+  if(nest.run > 0) nest.run -= DT;
+  if(nest.full > 0) nest.full -= DT;
+  nest.eggs.forEach((e,i) => { if(!e){ nest.respawn[i] -= DT; if(nest.respawn[i] <= 0) nest.eggs[i] = rollEgg(); } });
+  const safe = Math.hypot(dec.x-HOME.x, dec.y-HOME.y) < HOME.r;
+  const dG = Math.hypot(dec.x-g.x, dec.y-g.y), moving = Math.hypot(vDec[0], vDec[1]) > .22;
+  g.t += DT;
+  if(g.st === 'sleep'){ if(g.t >= g.dur){ g.st = 'stir'; g.t = 0; tone(330,.2,.09,'triangle'); } }
+  else if(g.st === 'stir'){ if(g.t >= 1.2){ g.st = 'awake'; g.t = 0; tone(523,.12,.1); } }
+  else if(g.st === 'awake'){
+    if(!safe && dG < VISION && (moving || nest.carry) && g.t > .35) startChase(false);
+    else if(g.t >= 2.8){ g.st = 'sleep'; g.t = 0; g.dur = sleepDur(); }
+  } else if(g.st === 'chase'){
+    const d = Math.max(1e-6, dG), sp = G_SPEED*(1 + Math.min(.4, g.t*.05));
+    g.x += (dec.x-g.x)/d*sp*DT; g.y += (dec.y-g.y)/d*sp*DT;
+    if(dG < .05) caught();
+    else if(safe || g.t > 7){ g.st = 'return'; g.t = 0; if(safe){ floaters.push({x:HOME.x, y:HOME.y - HOME.r, txt:'휴~ 안전!', life:1}); } }
+  } else if(g.st === 'return'){
+    const d = Math.hypot(GNEST.x-g.x, GNEST.y-g.y);
+    if(d < .01){ g.x = GNEST.x; g.y = GNEST.y; g.st = 'sleep'; g.t = 0; g.dur = sleepDur(); }
+    else { g.x += (GNEST.x-g.x)/d*.3*DT; g.y += (GNEST.y-g.y)/d*.3*DT; }
+  }
+  // 알 집기: 커서를 알 위에 잠깐 머물게 하기
+  if(!nest.carry && nest.stun <= 0){
+    let idx = -1; nest.eggs.forEach((e,i) => { if(e && Math.hypot(dec.x-EGG_SLOTS[i].x, dec.y-EGG_SLOTS[i].y) < .06) idx = i; });
+    if(idx >= 0){ nest.grab += DT; nest.grabIdx = idx;
+      if(nest.grab >= .45){ const type = nest.eggs[idx]; nest.carry = type; nest.eggs[idx] = null; nest.respawn[idx] = 6; nest.grab = 0; nest.stolen++;
+        tone(988,.1,.12,'triangle'); floaters.push({x:EGG_SLOTS[idx].x, y:EGG_SLOTS[idx].y, txt:`${EGGS[type].name} 획득!`, life:1});
+        if(g.st !== 'chase' && Math.random() < EGGS[type].wake*(1 - .18*NS.up.lull)) startChase(true); } }
+    else nest.grab = Math.max(0, nest.grab - DT*2);
+  }
+  // 둥지에 내려놓기 → 부화 대기
+  if(nest.carry && safe){
+    if(NS.mons.length + nest.incub.length < nestSlots()){
+      nest.incub.push({type:nest.carry, t:0}); burst(HOME.x, HOME.y, '#3ddc97', 22);
+      floaters.push({x:HOME.x, y:HOME.y - HOME.r*.3, txt:'알을 품었어요!', life:1}); tone(784,.14); tone(1046,.18,.12,'sine',.1); nest.carry = null;
+    } else if(nest.full <= 0){ nest.full = 3; floaters.push({x:HOME.x, y:HOME.y - HOME.r, txt:'둥지가 꽉 찼어요! 칸을 늘리세요', life:1}); tone(262,.2,.1,'triangle'); }
+  }
+  // 부화
+  for(let i=nest.incub.length-1;i>=0;i--){ const b = nest.incub[i]; b.t += DT;
+    if(b.t >= EGGS[b.type].hatch){ nest.incub.splice(i,1); NS.mons.push(b.type);
+      const p = homeSpot(NS.mons.length-1); burst(p.x, p.y, '#ff8bd1', 30); flash = .2;
+      floaters.push({x:p.x, y:p.y, txt:`${EGGS[b.type].mon} ${EGGS[b.type].mname} 탄생! +${EGGS[b.type].rate}/초`, life:1});
+      [784,988,1175].forEach((f,k) => tone(f,.16,.12,'triangle',k*.09)); saveNest(); renderShop(); } }
+  // 친구들이 번 코인 표시
+  nest.coinT += DT;
+  if(nest.coinT > 1.2 && NS.mons.length){ nest.coinT = 0; const k = Math.floor(Math.random()*NS.mons.length), p = homeSpot(k);
+    floaters.push({x:p.x, y:p.y, txt:`🪙+${EGGS[NS.mons[k]].rate}`, life:.8, small:true}); }
+}
+
+/* ---------- 상점 ---------- */
+function renderShop(){
+  $('shop').innerHTML = SHOP.map(s => { const lv = NS.up[s.id], mx = lv >= s.max, c = mx ? 0 : s.cost(lv);
+    return `<button data-buy="${s.id}" ${mx || NS.coins < c ? 'disabled' : ''}><span class="si">${s.icon}</span><span class="sn">${s.name} <em>Lv.${lv}</em></span><span class="sd">${s.desc}</span><span class="sc">${mx ? 'MAX' : '🪙 ' + c}</span></button>`; }).join('');
+  updateNestUi();
+}
+$('shop').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]'); if(!b || b.disabled) return;
+  const s = SHOP.find(x => x.id === b.dataset.buy), lv = NS.up[s.id]; if(lv >= s.max) return;
+  const c = s.cost(lv); if(NS.coins < c) return;
+  NS.coins -= c; NS.up[s.id]++; tone(1046,.12); tone(1318,.18,.12,'sine',.08);
+  if(s.id === 'elec'){ const n = ELEC_STEPS[NS.up.elec]; if(N < n){ autoCalib(n); setMsg(`⚡ 전극 <b>${n}개</b>로 업그레이드! 자동 보정을 마쳤어요. 커서가 덜 흔들려서 부엉이 앞에서 멈추기가 쉬워져요.`); } }
+  saveNest(); renderShop();
+});
+function updateNestUi(){
+  $('nCoins').textContent = Math.floor(NS.coins).toLocaleString();
+  $('nRate').textContent = `+${nestRate()}/초 · 친구 ${NS.mons.length}/${nestSlots()}`;
+  $('shop').querySelectorAll('[data-buy]').forEach(b => { const s = SHOP.find(x => x.id === b.dataset.buy), lv = NS.up[s.id];
+    b.disabled = lv >= s.max || NS.coins < s.cost(lv); });
+}
+
+/* ---------- 그리기 ---------- */
+function drawEgg(g, x, y, s, type, now){
+  const e = EGGS[type];
+  if(type !== 'common'){ g.shadowColor = type === 'rainbow' ? `hsl(${now/5%360},90%,70%)` : e.col; g.shadowBlur = s*1.2; }
+  if(type === 'rainbow'){ const gr = g.createLinearGradient(x-s, y-s, x+s, y+s);
+    ['#ff6b6b','#ffcc4d','#3ddc97','#58c4ff','#b37bff'].forEach((c,i) => gr.addColorStop(i/4, c)); g.fillStyle = gr; }
+  else g.fillStyle = e.col;
+  g.beginPath(); g.ellipse(x, y, s*.78, s, 0, 0, 7); g.fill(); g.shadowBlur = 0;
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(x - s*.28, y - s*.35, s*.18, s*.28, -.4, 0, 7); g.fill();
+}
+function drawNest(g, w, h, dpr, F, now){
+  const P = p => [p.x*w, p.y*h];
+  g.fillStyle = 'rgba(16,40,34,.35)'; g.fillRect(0,0,w,h);
+  // 내 둥지
+  const [hx,hy] = P(HOME);
+  g.fillStyle = 'rgba(61,220,151,.09)'; g.beginPath(); g.arc(hx,hy,HOME.r*w,0,7); g.fill();
+  g.setLineDash([6*dpr,5*dpr]); g.strokeStyle = 'rgba(61,220,151,.6)'; g.lineWidth = 2*dpr; g.beginPath(); g.arc(hx,hy,HOME.r*w,0,7); g.stroke(); g.setLineDash([]);
+  g.fillStyle = 'rgba(61,220,151,.85)'; g.font = F(11); g.fillText('내 둥지 · 안전', hx, hy - HOME.r*w - 9*dpr);
+  NS.mons.forEach((m,i) => { const p = homeSpot(i), [x,y] = P(p), b = Math.abs(Math.sin(now/260 + i*1.3))*5*dpr;
+    g.font = F(20); g.fillText(EGGS[m].mon, x, y - b); });
+  nest.incub.forEach((b,i) => { const p = homeSpot(NS.mons.length + i), [x,y] = P(p), k = b.t/EGGS[b.type].hatch, wob = Math.sin(now/60)*k*3*dpr;
+    drawEgg(g, x + wob, y, 9*dpr, b.type, now);
+    g.strokeStyle = '#3ddc97'; g.lineWidth = 2.5*dpr; g.beginPath(); g.arc(x, y, 15*dpr, -Math.PI/2, -Math.PI/2 + 2*Math.PI*k); g.stroke(); });
+  // 부엉이 둥지
+  const [nx,ny] = P(GNEST);
+  g.fillStyle = 'rgba(150,100,55,.28)'; g.beginPath(); g.ellipse(nx, ny, GNEST.r*w, GNEST.r*h*.85, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(190,140,80,.5)'; g.lineWidth = 3*dpr; g.stroke();
+  // 시야
+  const gd = nest.g, [gx,gy] = P(gd);
+  if(gd.st === 'awake' || gd.st === 'stir' || gd.st === 'chase'){
+    const a = gd.st === 'stir' ? .07 + .06*Math.sin(now/90) : gd.st === 'awake' ? .16 : .1;
+    g.fillStyle = `rgba(255,107,107,${a})`; g.beginPath(); g.arc(gx, gy, VISION*w, 0, 7); g.fill();
+    if(gd.st === 'awake'){ g.strokeStyle = 'rgba(255,107,107,.6)'; g.lineWidth = 2*dpr; g.stroke(); }
+  }
+  // 알
+  nest.eggs.forEach((e,i) => { if(!e) return; const [x,y] = P(EGG_SLOTS[i]); drawEgg(g, x, y, 13*dpr, e, now);
+    if(nest.grabIdx === i && nest.grab > 0){ g.strokeStyle = '#fff'; g.lineWidth = 3*dpr; g.beginPath(); g.arc(x, y, 20*dpr, -Math.PI/2, -Math.PI/2 + 2*Math.PI*Math.min(1, nest.grab/.45)); g.stroke(); } });
+  // 부엉이
+  const bob = gd.st === 'sleep' ? Math.sin(now/600)*2*dpr : 0;
+  g.font = F(gd.st === 'chase' ? 40 : 34); g.fillText('🦉', gx, gy + bob);
+  g.font = F(14);
+  if(gd.st === 'sleep'){ for(let k=0;k<3;k++){ const t = ((now/900) + k/3) % 1; g.fillStyle = `rgba(201,182,255,${1-t})`; g.font = F(11 + k*3); g.fillText('z', gx + 18*dpr + t*16*dpr, gy - 18*dpr - t*26*dpr - k*4*dpr); } }
+  else if(gd.st === 'stir'){ g.fillStyle = '#ffcc4d'; g.font = F(20); if(Math.floor(now/150)%2) g.fillText('!', gx + 22*dpr, gy - 22*dpr); }
+  else if(gd.st === 'awake'){ g.fillStyle = '#ff6b6b'; g.font = F(16); g.fillText('👀', gx + 24*dpr, gy - 22*dpr); }
+  else if(gd.st === 'chase'){ g.fillStyle = '#ff6b6b'; g.font = F(20); g.fillText('!!', gx + 24*dpr, gy - 24*dpr); }
+}
+function drawNestTop(g, w, h, dpr, F, now){
+  const P = p => [p.x*w, p.y*h], [dx,dy] = P(dec);
+  if(nest.carry) drawEgg(g, dx + 14*dpr, dy - 14*dpr, 9*dpr, nest.carry, now);
+  if(nest.stun > 0){ g.font = F(18); g.fillText('💫', dx, dy - 20*dpr); }
+  const st = {sleep:['😴 부엉이가 자는 중 — 지금이야!','#3ddc97'], stir:['⚠️ 부엉이가 깨려고 해요','#ffcc4d'], awake:['👀 감시 중 — 커서를 멈춰!','#ff6b6b'],
+              chase:['🏃 쫓아온다! 둥지로 도망쳐!','#ff6b6b'], return:['🦉 부엉이가 둥지로 돌아가는 중','#c9b6ff']}[nest.g.st];
+  hudPill(g, 12*dpr, 12*dpr, st[0], dpr, F, st[1]);
+  g.textAlign = 'right'; g.font = F(18); g.fillStyle = '#ffcc4d'; g.fillText(`🪙 ${Math.floor(NS.coins).toLocaleString()}`, w - 14*dpr, h - 40*dpr);
+  g.font = F(12); g.fillStyle = '#c6cde4'; g.fillText(`+${nestRate()}/초`, w - 14*dpr, h - 18*dpr); g.textAlign = 'center';
+  if(nest.run > 0){ const s = 1 + .15*Math.sin(now/60); g.save(); g.translate(w/2, h*.45); g.scale(s, s);
+    g.font = F(54); g.fillStyle = '#ff6b6b'; g.shadowColor = '#ff6b6b'; g.shadowBlur = 24*dpr; g.fillText('RUN!!', 0, 0); g.restore(); g.shadowBlur = 0; }
+}
+
+/* ================== 타이틀 배경: 떠다니는 뉴런과 신호 ================== */
+const bgc = $('bg'); let bgNodes = [], bgPulses = [];
+function initBg(){ bgNodes = Array.from({length:46}, () => ({x:Math.random(), y:Math.random(), vx:(Math.random()-.5)*.012, vy:(Math.random()-.5)*.012, h:180+Math.random()*150})); }
+function drawBg(fdt){
+  const [g, w, h, dpr] = fitCanvas(bgc); g.clearRect(0,0,w,h);
+  const onTitle = !$('title').classList.contains('hidden'), A = onTitle ? 1 : .35, L = Math.min(w,h)*.22;
+  bgNodes.forEach(n => { n.x += n.vx*fdt; n.y += n.vy*fdt; if(n.x<0||n.x>1) n.vx*=-1; if(n.y<0||n.y>1) n.vy*=-1; });
+  for(let i=0;i<bgNodes.length;i++) for(let j=i+1;j<bgNodes.length;j++){
+    const a = bgNodes[i], b = bgNodes[j], d = Math.hypot((a.x-b.x)*w, (a.y-b.y)*h);
+    if(d < L){ g.strokeStyle = `hsla(${a.h},70%,65%,${(1-d/L)*.16*A})`; g.lineWidth = dpr; g.beginPath(); g.moveTo(a.x*w,a.y*h); g.lineTo(b.x*w,b.y*h); g.stroke();
+      if(Math.random() < .09*fdt) bgPulses.push({a, b, t:0}); } }
+  bgPulses = bgPulses.filter(p => (p.t += fdt*1.4) < 1);
+  bgPulses.forEach(p => { const x = (p.a.x + (p.b.x-p.a.x)*p.t)*w, y = (p.a.y + (p.b.y-p.a.y)*p.t)*h;
+    g.fillStyle = `hsla(${p.a.h},90%,75%,${A})`; g.shadowColor = `hsl(${p.a.h},90%,70%)`; g.shadowBlur = 10*dpr;
+    g.beginPath(); g.arc(x, y, 2.2*dpr, 0, 7); g.fill(); g.shadowBlur = 0; });
+  bgNodes.forEach(n => { g.fillStyle = `hsla(${n.h},80%,70%,${.55*A})`; g.beginPath(); g.arc(n.x*w, n.y*h, 2*dpr, 0, 7); g.fill(); });
+}
+
+/* ================== 화면 전환: 타이틀 → 브리핑 → 게임 / 탭 ================== */
+function showTab(name){
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + name));
+  if(name === 'lab') requestAnimationFrame(() => drawExp());
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('#tabs button, [data-go]').forEach(b => b.onclick = () => showTab(b.dataset.tab || b.dataset.go));
+function typeLine(el, txt, delay){
+  el.innerHTML = ''; let i = 0;
+  setTimeout(function step(){
+    if(txt[i] === '<') i = txt.indexOf('>', i) + 1; else i++;   // 태그는 한 번에
+    el.innerHTML = txt.slice(0, i);
+    if(i < txt.length) setTimeout(step, 22);
+  }, delay);
+}
+$('btnStart').onclick = () => {
+  audio(); tone(523,.12); tone(784,.18,.12,'sine',.08);
+  $('title').classList.add('hidden'); document.body.classList.remove('title-on'); showTab('game');
+  if(sessionStorage.getItem('nc-brief')) return;          // 브리핑은 한 번만
+  $('story').classList.remove('hidden');
+  typeLine($('s1'), '사고로 몸을 움직일 수 없게 된 <b>하늘</b> 씨. 하지만 뇌의 운동피질은 여전히 "움직이고 싶다"는 신호를 보내고 있어요.', 150);
+  typeLine($('s2'), '당신은 <b>BCI 엔지니어</b>. 뉴런 신호를 해독해서 하늘 씨가 생각만으로 커서를 움직이고, 다시 말할 수 있게 도와주세요.', 1700);
+  [...$('mlist').children].forEach((d,i) => { d.classList.remove('in'); setTimeout(() => d.classList.add('in'), 3300 + i*250); });
+};
+$('btnBrief').onclick = () => { sessionStorage.setItem('nc-brief', 1); $('story').classList.add('hidden'); tone(988,.15); };
+$('btnHow').onclick = () => { $('title').classList.add('hidden'); document.body.classList.remove('title-on'); showTab('learn'); };
+$('goTitle').onclick = () => { if(phase === 'game' || phase === 'countdown') return; $('title').classList.remove('hidden'); document.body.classList.add('title-on'); showBest(); };
+
 /* ================== 메인 루프 ================== */
+const visible = el => el.offsetParent !== null;
 let last = performance.now(), accT = 0;
 function loop(now){
+  const fdt = Math.min(.05, (now - last)/1000);
   accT += Math.min(0.25, (now - last)/1000); last = now;
   while(accT >= DT){ tick(); accT -= DT; }
-  drawPad(now); drawMap(); drawRaster();
+  drawBg(fdt);
+  if(visible(pad)) drawPad(now);
+  if(visible($('mini'))) drawMap($('mini'));
+  if(visible($('map'))){ drawMap($('map')); drawRaster(); }
   requestAnimationFrame(loop);
 }
-resetAll(); drawExp();
-addEventListener('resize', () => drawExp());
+initBg(); resetAll();
+addEventListener('resize', () => { if(visible($('exp'))) drawExp(); });
 requestAnimationFrame(loop);
 </script>
 </body>
