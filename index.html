@@ -2,65 +2,84 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>뉴로커서 — 뉴런 신호로 커서 조종하기</title>
 <style>
-  :root{--bg:#0e1220;--panel:#171c2e;--line:#2a3150;--ink:#e8ecf8;--muted:#9aa3c0;
-        --hand:#58c4ff;--dec:#b37bff;--tgt:#ffcc4d;--ok:#3ddc97;--bad:#ff6b6b}
+  :root{--bg:#0b0f1c;--panel:#151a2b;--panel2:#0f1424;--line:#262d4a;--ink:#e8ecf8;--muted:#98a1bf;
+        --hand:#58c4ff;--dec:#b37bff;--tgt:#ffcc4d;--pv:#ff9f43;--ok:#3ddc97;--bad:#ff6b6b}
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','맑은 고딕','Malgun Gothic',sans-serif}
-  .wrap{max-width:1000px;margin:0 auto;padding:14px 14px 40px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  h1{font-size:1.35rem;margin:0}
-  h1 span{color:var(--dec)}
-  .tag{color:var(--muted);font-size:.85rem}
-  .steps{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
-  .steps div{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:.85rem}
-  .steps div.on{border-color:var(--dec);color:var(--ink);background:#231c3d}
+  html,body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#1d1640 0,var(--bg) 60%) fixed;color:var(--ink);
+    font-family:'Pretendard','맑은 고딕','Malgun Gothic',system-ui,sans-serif}
+  .wrap{max-width:1060px;margin:0 auto;padding:12px 12px 40px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap}
+  h1{font-size:1.35rem;margin:0;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(90deg,var(--hand),var(--dec));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{color:var(--muted);font-size:.82rem}
+  .steps{display:flex;gap:6px;margin:10px 0}
+  .steps div{flex:1;text-align:center;padding:7px 4px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:.8rem;white-space:nowrap}
+  .steps div.on{border-color:var(--dec);color:var(--ink);background:#251c43;box-shadow:0 0 0 2px #b37bff33}
   .steps div.done{color:var(--ok)}
-  .main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
-  @media(max-width:780px){.main{grid-template-columns:1fr}}
+  .main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
+  @media(max-width:800px){.main{grid-template-columns:1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px}
-  #pad{width:100%;aspect-ratio:1/1;display:block;border-radius:12px;background:#0a0d18;touch-action:none;cursor:crosshair}
-  #raster{width:100%;height:190px;display:block;border-radius:10px;background:#0a0d18}
-  .msg{min-height:3.2em;margin:10px 2px 4px;font-size:.98rem;line-height:1.5}
+  #pad{width:100%;aspect-ratio:1/1;display:block;border-radius:12px;background:#070a14;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+  .msg{min-height:3em;margin:10px 2px 6px;font-size:.96rem;line-height:1.5}
   .msg b{color:var(--tgt)}
-  .bar{height:8px;background:#0a0d18;border-radius:99px;overflow:hidden;margin-top:6px}
-  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--hand),var(--dec))}
-  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  button,select{font:inherit;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:#252c48;color:var(--ink);font-weight:600}
-  button.main-btn{background:var(--dec);color:#140b29}
-  button:disabled{opacity:.4;cursor:default}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-  .stats div{background:#0f1425;border-radius:12px;padding:8px;text-align:center;font-size:.78rem;color:var(--muted)}
-  .stats b{display:block;font-size:1.25rem;color:var(--ink)}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:8px}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:.9rem;color:var(--muted)}
-  label.chk{display:flex;align-items:center;gap:6px}
-  h3{margin:0 0 6px;font-size:.95rem}
-  details{margin-top:14px}
-  summary{cursor:pointer;font-weight:700;padding:6px 0}
-  details p,details li{color:#c6cde4;font-size:.92rem;line-height:1.65}
-  footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:18px}
+  .bar{height:6px;background:#070a14;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--hand),var(--dec));transition:width .1s linear}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  button,select{font:inherit;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;background:#252c48;color:var(--ink);font-weight:700}
+  #btnMain{flex:1;background:linear-gradient(90deg,#8f5cff,#b37bff);color:#fff;font-size:1.05rem;box-shadow:0 6px 20px #8f5cff44}
+  #btnMain.busy{background:#2a2350;color:#cbb8ff;box-shadow:none;cursor:default}
+  button:disabled{opacity:.35;cursor:default}
+  .legend{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:10px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+  .side{display:grid;gap:12px}
+  h3{margin:0 0 8px;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;gap:6px}
+  h3 small{font-weight:400;color:var(--muted);font-size:.75rem}
+  .brain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+  @media(max-width:420px){.brain{grid-template-columns:1fr}#map{max-width:230px;margin:0 auto}}
+  #map{width:100%;aspect-ratio:1/1;display:block}
+  .maplg{font-size:.76rem;color:var(--muted);line-height:1.7}
+  .maplg i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
+  #raster{width:100%;height:150px;display:block;border-radius:10px;background:#070a14;margin-top:10px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+  @media(max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stats div{background:var(--panel2);border-radius:12px;padding:8px 4px;text-align:center;font-size:.72rem;color:var(--muted)}
+  .stats b{display:block;font-size:1.2rem;color:var(--ink);margin-top:2px}
+  .row{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:10px;font-size:.88rem;color:var(--muted)}
+  .row select{padding:8px 10px}
+  label.chk{display:flex;align-items:center;gap:5px;cursor:pointer}
+  #exp{width:100%;height:210px;display:block;border-radius:10px;background:#070a14;margin-top:8px}
+  .cap{color:var(--muted);font-size:.85rem;line-height:1.55;margin:0}
+  details{margin-top:12px}
+  summary{cursor:pointer;font-weight:700;padding:4px 0}
+  details p,details li{color:#c6cde4;font-size:.9rem;line-height:1.7}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:16px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>🧠 뉴로<span>커서</span></h1>
-    <div class="tag">뇌에 심은 전극으로 커서를 움직이는 원리 체험 · 가짜(시뮬레이션) 뉴런 사용</div>
+    <h1>🧠 <span>뉴로커서</span></h1>
+    <div class="tag">뇌에 심은 전극으로 커서를 움직이는 원리 체험 · 모든 뉴런은 시뮬레이션</div>
   </header>
 
   <div class="steps">
-    <div id="st1">① 보정 15초</div>
+    <div id="st1">① 보정</div>
     <div id="st2">② 뉴런으로 조종</div>
     <div id="st3">③ 과녁 게임</div>
   </div>
 
   <div class="main">
     <div class="card">
-      <canvas id="pad"></canvas>
+      <canvas id="pad" aria-label="조종 패드"></canvas>
+      <div class="msg" id="msg"></div>
+      <div class="bar"><i id="prog"></i></div>
+      <div class="btns">
+        <button id="btnMain">▶ 보정 시작</button>
+        <button id="btnRecal" disabled title="다시 보정">↺ 다시 보정</button>
+      </div>
       <div class="legend">
         <span><i class="dot" style="background:var(--hand)"></i>내 손 (뇌가 하려는 움직임)</span>
         <span><i class="dot" style="background:var(--dec)"></i>디코더 커서 (뉴런 신호만 보고 추정)</span>
@@ -68,39 +87,56 @@
       </div>
     </div>
 
-    <div class="card">
-      <h3>⚡ 뉴런 발화 기록 (최근 4초)</h3>
-      <canvas id="raster"></canvas>
-      <div class="msg" id="msg"></div>
-      <div class="bar"><i id="prog"></i></div>
-      <div class="btns">
-        <button class="main-btn" id="btnMain">▶ 보정 시작</button>
-        <button id="btnGame" disabled>🎯 게임 시작</button>
-        <button id="btnRecal" disabled>↺ 다시 보정</button>
+    <div class="side">
+      <div class="card">
+        <h3>🔬 뇌 속 들여다보기 <small>실시간</small></h3>
+        <div class="brain">
+          <canvas id="map" aria-label="뉴런 방향 지도"></canvas>
+          <div class="maplg">
+            점 하나 = 뉴런 하나<br>
+            <b style="color:var(--ink)">점 위치·색</b> = 그 뉴런이 좋아하는 방향<br>
+            <b style="color:var(--ink)">밝기</b> = 지금 발화하는 정도<br>
+            <i style="background:var(--hand)"></i>내 손의 속도<br>
+            <i style="background:var(--pv)"></i>집단 벡터 (뉴런 투표 결과)<br>
+            <i style="background:var(--dec)"></i>디코더 출력
+          </div>
+        </div>
+        <canvas id="raster" aria-label="뉴런 발화 기록"></canvas>
+        <div class="stats">
+          <div>디코더 정확도<b id="acc">—</b></div>
+          <div>게임 점수<b id="score">0</b></div>
+          <div>최고 점수<b id="best">0</b></div>
+          <div>정보 전송률<b id="itr">—</b></div>
+        </div>
+        <div class="row">
+          전극 수
+          <select id="nSel"><option>8</option><option>16</option><option selected>32</option><option>64</option><option>96</option></select>
+          <label class="chk"><input type="checkbox" id="sfx" checked> 🔊 효과음</label>
+          <label class="chk"><input type="checkbox" id="snd"> ⚡ 뉴런 소리</label>
+          <label class="chk"><input type="checkbox" id="hide" checked> 게임 때 내 손 숨기기</label>
+        </div>
       </div>
-      <div class="stats">
-        <div>디코더 정확도<b id="acc">—</b></div>
-        <div>게임 점수<b id="score">0</b></div>
-        <div>최고 점수<b id="best">0</b></div>
-      </div>
-      <div class="row">
-        전극(뉴런) 수
-        <select id="nSel"><option>8</option><option selected>32</option><option>96</option></select>
-        <label class="chk"><input type="checkbox" id="snd"> 🔊 뉴런 소리</label>
-        <label class="chk"><input type="checkbox" id="hide" checked> 게임 때 내 손 숨기기</label>
+
+      <div class="card">
+        <h3>🧪 전극 수 실험실 <small>자동 시뮬레이션</small></h3>
+        <p class="cap">전극(뉴런)이 많을수록 정말 더 정확할까? 가상의 사람이 15초 보정 + 10초 시험을 전극 수마다 8번씩 반복해요.</p>
+        <canvas id="exp" aria-label="전극 수 실험 결과"></canvas>
+        <div class="btns"><button id="btnExp" style="flex:1">▶ 실험 돌리기</button></div>
       </div>
     </div>
   </div>
 
   <details class="card">
-    <summary>🔬 어떻게 작동하나요?</summary>
+    <summary>📖 어떻게 작동하나요?</summary>
     <ol>
-      <li><b>뉴런마다 좋아하는 방향이 있어요.</b> 뇌의 운동피질 뉴런은 팔을 특정 방향(예: 오른쪽 위)으로 움직이려 할 때 가장 많이 발화해요. 이것을 <i>코사인 방향 튜닝</i>이라고 해요 (Georgopoulos, 1982).</li>
-      <li><b>발화는 무작위예요.</b> 같은 움직임이어도 스파이크 수가 매번 달라요(포아송 잡음). 그래서 뉴런이 많을수록 정확해져요. 전극 수를 바꿔서 직접 확인해 보세요.</li>
-      <li><b>보정 = 디코더 학습.</b> 15초 동안 과녁을 따라가면, 그때의 "뉴런 발화 수"와 "실제 손 속도"를 짝지어 기록해요. 그다음 <i>속도 = Σ(발화 수 × 가중치) + 바이어스</i>가 되는 가중치를 찾아요(리지 회귀). 수업에서 배운 퍼셉트론 계산과 같은 모양이에요.</li>
-      <li><b>디코딩.</b> 이제 디코더는 손을 보지 않고 뉴런 신호만으로 속도를 계산해서 보라색 커서를 움직여요. 실제 BCI 환자도 이렇게 생각만으로 커서를 움직여요.</li>
+      <li><b>뉴런마다 좋아하는 방향이 있어요.</b> 운동피질 뉴런은 팔을 특정 방향으로 움직이려 할 때 가장 많이 발화해요(<i>코사인 방향 튜닝</i>, Georgopoulos 1982). "뇌 속 들여다보기"에서 손을 움직이는 방향의 점들이 밝아지는 걸 볼 수 있어요.</li>
+      <li><b>뉴런들의 투표 = 집단 벡터.</b> 각 뉴런이 자기 방향으로 "발화한 만큼" 화살표를 그려 모두 더하면, 손이 움직이는 방향이 나와요(주황 화살표).</li>
+      <li><b>발화는 무작위예요.</b> 같은 움직임이어도 스파이크 수가 매번 달라요(포아송 잡음). 그래서 뉴런이 많을수록 정확해져요 → 전극 수 실험실에서 확인!</li>
+      <li><b>보정 = 디코더 학습.</b> 과녁을 따라가는 동안 "발화 수"와 "실제 손 속도"를 짝지어 기록한 뒤, <i>속도 = Σ(발화 수 × 가중치) + 바이어스</i>가 되는 가중치를 찾아요(리지 회귀). 수업에서 배운 퍼셉트론의 계산과 같은 모양이에요.</li>
+      <li><b>디코딩.</b> 이제 보라색 커서는 손을 보지 않고 뉴런 신호만으로 움직여요. 실제 BCI 연구에서도 사람이 "움직이려는 생각"만으로 이렇게 커서를 조종해요.</li>
+      <li><b>정보 전송률(bits/s).</b> BCI 성능을 비교할 때 쓰는 지표예요. 멀고 작은 과녁을 빨리 맞힐수록 높아요(피츠의 법칙).</li>
     </ol>
-    <p>※ 이 앱의 뉴런은 모두 수학 모델로 만든 가짜 데이터예요. 실제 뇌 신호는 쓰지 않아요.</p>
+    <p>※ 이 앱의 뉴런은 모두 수학 모델로 만든 가짜 데이터예요. 실제 뇌 신호나 개인정보는 쓰지 않아요.</p>
   </details>
 
   <footer>뉴로커서 · 인공지능 프로그래밍 프로젝트 · 이윤지</footer>
@@ -108,58 +144,35 @@
 
 <script>
 /* ================== 설정 ================== */
-const DT = 0.05;              // 50ms 단위(bin)로 계산
-const CALIB_SEC = 15, GAME_SEC = 30;
-const BASE = 10, GAIN = 30, MAXR = 150;   // 발화율(Hz): 기본, 속도 민감도, 최대
-const RASTER_SEC = 4, HIT_R = 0.07, DWELL = 0.25;
+const DT = 0.05;                         // 50ms 단위(bin)
+const CALIB_SEC = 15, GAME_SEC = 30, COUNT_SEC = 3;
+const BASE = 10, GAIN = 30, MAXR = 150;  // 발화율(Hz): 기본, 속도 민감도, 최대
+const RASTER_SEC = 4, DWELL = 0.3;
+const R_START = 0.085, R_MIN = 0.045;
 const $ = id => document.getElementById(id);
 
-/* ================== 상태 ================== */
-let N, neurons, phase = 'intro';      // intro | calib | decode | game
-let hand = {x:.5, y:.5}, prevHand = {x:.5, y:.5}, touching = false;
-let dec = {x:.5, y:.5}, trail = [];
-let target = {x:.5, y:.5}, calibPath = [];
-let feat = [], X = [], Y = [], W = null;
-let rasterBins = [];                 // 최근 bin들의 스파이크 [ [count per neuron] ]
-let hist = [];                       // 정확도 계산용 [vx,vy,dvx,dvy]
-let tPhase = 0, acc = 0, score = 0, dwellT = 0;
-
 /* ================== 뉴런 모델 ================== */
-function makeNeurons(n){
-  N = n; neurons = [];
+function makePop(n){
+  const ns = [];
   for(let i=0;i<n;i++){
-    const th = (i / n) * 2*Math.PI + (Math.random()-.5) * (2*Math.PI/n);
-    neurons.push({cx:Math.cos(th), cy:Math.sin(th), base:BASE*(0.6+Math.random()*0.8), gain:GAIN*(0.6+Math.random()*0.8)});
+    const th = (i/n)*2*Math.PI + (Math.random()-.5)*(2*Math.PI/n);
+    ns.push({th, cx:Math.cos(th), cy:Math.sin(th), base:BASE*(0.6+Math.random()*0.8), gain:GAIN*(0.6+Math.random()*0.8)});
   }
-  feat = new Array(n).fill(0);
+  return ns;
 }
-function poisson(lam){                 // Knuth 방식
-  const L = Math.exp(-lam); let k = 0, p = 1;
-  do { k++; p *= Math.random(); } while(p > L);
-  return k - 1;
-}
-function fire(vx, vy){
-  return neurons.map(nr => {
-    const r = Math.min(MAXR, Math.max(0, nr.base + nr.gain*(vx*nr.cx + vy*nr.cy)));
-    return poisson(r*DT);
-  });
-}
+function poisson(lam){ const L = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= Math.random(); } while(p > L); return k-1; }
+function firePop(ns, vx, vy){ return ns.map(nr => poisson(Math.min(MAXR, Math.max(0, nr.base + nr.gain*(vx*nr.cx + vy*nr.cy)))*DT)); }
 
 /* ================== 디코더 (리지 회귀) ================== */
-function fitDecoder(){
-  const d = N + 1, lam = N * 1.5;   // 뉴런이 많을수록 규제를 크게 (15초 데이터에 과적합 방지)
+function fitRidge(X, Y, n){
+  const d = n+1, lam = n*1.5;            // 뉴런이 많을수록 규제를 크게 (과적합 방지)
   const A = Array.from({length:d}, () => new Array(d).fill(0));
   const B = Array.from({length:d}, () => [0,0]);
-  for(let t=0;t<X.length;t++){
-    const x = X[t];
-    for(let i=0;i<d;i++){
-      B[i][0] += x[i]*Y[t][0]; B[i][1] += x[i]*Y[t][1];
-      for(let j=i;j<d;j++) A[i][j] += x[i]*x[j];
-    }
-  }
-  for(let i=0;i<d;i++){ for(let j=0;j<i;j++) A[i][j] = A[j][i]; if(i<N) A[i][i] += lam; }
-  // 가우스 소거
-  for(let c=0;c<d;c++){
+  for(let t=0;t<X.length;t++){ const x = X[t];
+    for(let i=0;i<d;i++){ B[i][0] += x[i]*Y[t][0]; B[i][1] += x[i]*Y[t][1];
+      for(let j=i;j<d;j++) A[i][j] += x[i]*x[j]; } }
+  for(let i=0;i<d;i++){ for(let j=0;j<i;j++) A[i][j] = A[j][i]; if(i<n) A[i][i] += lam; }
+  for(let c=0;c<d;c++){                   // 가우스 소거
     let p = c; for(let r=c+1;r<d;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p = r;
     [A[c],A[p]] = [A[p],A[c]]; [B[c],B[p]] = [B[p],B[c]];
     const v = A[c][c] || 1e-9;
@@ -167,36 +180,60 @@ function fitDecoder(){
       for(let k=c;k<d;k++) A[r][k] -= f*A[c][k];
       B[r][0] -= f*B[c][0]; B[r][1] -= f*B[c][1]; }
   }
-  W = B.map((b,i) => [b[0]/A[i][i], b[1]/A[i][i]]);
+  return B.map((b,i) => [b[0]/A[i][i], b[1]/A[i][i]]);
 }
-function decode(f){
-  let vx = W[N][0], vy = W[N][1];
-  for(let i=0;i<N;i++){ vx += f[i]*W[i][0]; vy += f[i]*W[i][1]; }
-  return [vx, vy];
-}
+function decodeW(W, f, n){ let vx = W[n][0], vy = W[n][1];
+  for(let i=0;i<n;i++){ vx += f[i]*W[i][0]; vy += f[i]*W[i][1]; } return [vx, vy]; }
 function corr(a, b){
   const n = a.length; if(n < 10) return null;
   const ma = a.reduce((s,v)=>s+v,0)/n, mb = b.reduce((s,v)=>s+v,0)/n;
   let sab=0, saa=0, sbb=0;
   for(let i=0;i<n;i++){ const da=a[i]-ma, db=b[i]-mb; sab+=da*db; saa+=da*da; sbb+=db*db; }
-  if(saa < 1e-3) return null;
-  return sab / Math.sqrt(saa*sbb + 1e-12);
+  if(saa < 1e-3 || sbb < 1e-9) return null;
+  return sab/Math.sqrt(saa*sbb);
 }
+/* 보정용 과녁 경로: 무작위 지점을 부드럽게 이동 */
+function makePath(k){ const path = []; for(let i=0;i<k;i++){ const a = Math.random()*2*Math.PI, r = .18+Math.random()*.24;
+  path.push({x:Math.min(.9,Math.max(.1,.5+Math.cos(a)*r)), y:Math.min(.9,Math.max(.1,.5+Math.sin(a)*r))}); } return path; }
+function pathAt(path, total, t){
+  const seg = total/path.length, k = Math.min(path.length-1, Math.floor(t/seg));
+  const a = k===0 ? {x:.5,y:.5} : path[k-1], b = path[k];
+  let u = Math.min(1,(t-k*seg)/seg); u = u<.5 ? 2*u*u : 1-Math.pow(-2*u+2,2)/2;
+  return {x:a.x+(b.x-a.x)*u, y:a.y+(b.y-a.y)*u};
+}
+
+/* ================== 상태 ================== */
+let N, neurons, order, W = null;
+let phase = 'intro';                    // intro | calib | decode | countdown | game
+let hand = {x:.5,y:.5}, prevHand = {x:.5,y:.5}, touching = false, everTouched = false;
+let dec = {x:.5,y:.5}, trail = [], target = {x:.5,y:.5,r:R_START}, calibPath = [];
+let feat = [], X = [], Y = [], rasterBins = [], hist = [];
+let tPhase = 0, acc = 0, dwellT = 0, calibMove = 0, calibOn = 0;
+let hits = 0, points = 0, combo = 0, lastHitT = -9, bits = 0, tgtDist = .3;
+let vHand = [0,0], vDec = [0,0], vPV = [0,0];
+let particles = [], floaters = [], result = null, flash = 0;
 
 /* ================== 소리 ================== */
 let actx = null;
-function click(delay){
+function audio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state === 'suspended') actx.resume(); }
+function click(delay, pan){
   if(!actx) return;
   const t = actx.currentTime + delay, len = 0.004;
   const buf = actx.createBuffer(1, Math.floor(actx.sampleRate*len), actx.sampleRate);
   const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*(1-i/d.length);
-  const s = actx.createBufferSource(), g = actx.createGain(); g.gain.value = .25;
-  s.buffer = buf; s.connect(g); g.connect(actx.destination); s.start(t);
+  const s = actx.createBufferSource(), g = actx.createGain(); g.gain.value = .3; s.buffer = buf;
+  if(actx.createStereoPanner){ const p = actx.createStereoPanner(); p.pan.value = pan; s.connect(g); g.connect(p); p.connect(actx.destination); }
+  else { s.connect(g); g.connect(actx.destination); }
+  s.start(t);
 }
-function beep(f){ if(!actx) return; const o=actx.createOscillator(), g=actx.createGain();
-  o.frequency.value=f; g.gain.setValueAtTime(.12,actx.currentTime); g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);
-  o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+.26); }
-$('snd').onchange = e => { if(e.target.checked && !actx){ actx = new (window.AudioContext||window.webkitAudioContext)(); } };
+function tone(f, dur=.18, vol=.12, type='sine', when=0){
+  if(!actx || !$('sfx').checked) return;
+  const t = actx.currentTime + when, o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t+dur);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+dur+.02);
+}
 
 /* ================== 입력 ================== */
 const pad = $('pad');
@@ -205,73 +242,108 @@ function setHand(e){
   hand.x = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
   hand.y = Math.min(1, Math.max(0, (e.clientY - r.top)/r.height));
 }
-pad.addEventListener('pointerdown', e => { touching = true; pad.setPointerCapture(e.pointerId); setHand(e); });
-pad.addEventListener('pointermove', e => { if(touching || e.pointerType === 'mouse') setHand(e); });
+pad.addEventListener('pointerdown', e => {
+  touching = true; everTouched = true; pad.setPointerCapture(e.pointerId); setHand(e);
+  prevHand = {x:hand.x, y:hand.y};       // 손가락을 다른 곳에 새로 댈 때 "순간이동 속도"가 생기지 않게
+  if(result && phase === 'decode') result = null;
+});
+pad.addEventListener('pointermove', e => { if(touching || e.pointerType === 'mouse'){ if(!everTouched){ everTouched = true; setHand(e); prevHand = {...hand}; } setHand(e); } });
 pad.addEventListener('pointerup',   () => touching = false);
 pad.addEventListener('pointercancel', () => touching = false);
 
 /* ================== 단계 진행 ================== */
 function setMsg(h){ $('msg').innerHTML = h; }
 function setSteps(){
-  const order = {intro:0, calib:1, decode:2, game:3};
+  const o = {intro:0, calib:1, decode:2, countdown:3, game:3}[phase];
   ['st1','st2','st3'].forEach((id,i) => {
-    const o = order[phase];
-    $(id).className = (o === i+1) ? 'on' : (o > i+1 ? 'done' : '');
+    const done = o > i+1 || (i === 2 && gamesPlayed > 0 && phase === 'decode');
+    $(id).className = (o === i+1) ? 'on' : (done ? 'done' : '');
   });
 }
-function newCalibPath(){
-  calibPath = []; let p = {x:.5,y:.5};
-  for(let i=0;i<14;i++){ const ang = Math.random()*2*Math.PI, r = .2+Math.random()*.2;
-    p = {x:Math.min(.9,Math.max(.1,.5+Math.cos(ang)*r)), y:Math.min(.9,Math.max(.1,.5+Math.sin(ang)*r))}; calibPath.push(p); }
-}
-function calibTarget(t){
-  const seg = CALIB_SEC / calibPath.length, k = Math.min(calibPath.length-1, Math.floor(t/seg));
-  const a = k===0 ? {x:.5,y:.5} : calibPath[k-1], b = calibPath[k];
-  let u = (t - k*seg)/seg; u = u<.5 ? 2*u*u : 1-Math.pow(-2*u+2,2)/2;
-  return {x:a.x+(b.x-a.x)*u, y:a.y+(b.y-a.y)*u};
+function setMain(label, enabled, busy=false){ const b = $('btnMain'); b.innerHTML = label; b.disabled = !enabled && !busy; b.classList.toggle('busy', busy); }
+let gamesPlayed = 0;
+
+function resetAll(){
+  N = Number($('nSel').value); neurons = makePop(N);
+  order = neurons.map((_,i)=>i).sort((a,b)=>neurons[a].th-neurons[b].th);
+  feat = neurons.map(n => n.base*DT);
+  phase = 'intro'; W = null; rasterBins = []; trail = []; hist = []; result = null; acc = 0;
+  setMain('▶ 보정 시작', true); $('btnRecal').disabled = true;
+  $('prog').style.width = '0'; $('acc').textContent = '—'; $('itr').textContent = '—'; $('score').textContent = 0;
+  showBest(); setSteps();
+  setMsg(`👋 가상의 뇌에 <b>전극 ${N}개</b>를 심었어요. 먼저 <b>보정</b>으로 뉴런이 어떻게 반응하는지 배워요.`);
 }
 function startCalib(){
-  phase = 'calib'; tPhase = 0; X = []; Y = []; W = null; hist = []; acc = 0;
-  feat.fill(0); newCalibPath(); target = calibTarget(0);
-  $('btnMain').disabled = true; $('btnGame').disabled = true; $('btnRecal').disabled = true; $('acc').textContent = '—';
-  setMsg('🟡 노란 과녁을 <b>손가락(마우스)으로 계속 따라가세요.</b> 뉴런들이 어떤 방향에서 발화하는지 기록하는 중이에요.');
-  setSteps();
+  audio();
+  phase = 'calib'; tPhase = 0; X = []; Y = []; W = null; hist = []; acc = 0; calibMove = 0; calibOn = 0; result = null;
+  calibPath = makePath(13); target = {...pathAt(calibPath, CALIB_SEC, 0), r:R_START};
+  setMain('보정 중…', false, true); $('btnRecal').disabled = true; $('acc').textContent = '—';
+  setMsg('🟡 노란 과녁을 <b>손가락(마우스)으로 계속 따라가세요.</b> 그동안 뉴런들이 어느 방향에서 발화하는지 기록해요.');
+  setSteps(); tone(660,.12);
 }
-function startDecode(){
-  fitDecoder();
+function endCalib(){
+  const total = X.length;
+  if(calibMove < total*0.35){            // 손을 거의 안 움직였으면 학습할 데이터가 없음
+    phase = 'intro'; setSteps(); $('prog').style.width = '0';
+    setMain('▶ 보정 다시 하기', true);
+    setMsg('🤔 손이 거의 움직이지 않아서 뉴런 데이터가 부족해요. <b>과녁을 따라 패드 위에서 계속 움직이며</b> 다시 보정해 주세요.');
+    tone(220,.3,.12,'triangle'); return;
+  }
+  W = fitRidge(X, Y, N);
   phase = 'decode'; tPhase = 0; dec = {x:hand.x, y:hand.y}; trail = []; hist = [];
-  $('btnMain').disabled = true; $('btnGame').disabled = false; $('btnRecal').disabled = false;
-  setMsg('✅ 디코더 학습 완료! 이제 <b>보라색 커서는 손이 아니라 뉴런 신호만 보고</b> 움직여요. 자유롭게 움직여 보고 준비되면 게임을 시작하세요.');
-  $('prog').style.width = '100%';
+  setMain('🎯 게임 시작', true); $('btnRecal').disabled = false;
+  const follow = Math.round(calibOn/total*100);
+  setMsg(`✅ 디코더 학습 완료! (과녁 따라가기 ${follow}%) 이제 <b>보라색 커서는 손이 아니라 뉴런 신호만 보고</b> 움직여요. 자유롭게 움직여 보고 준비되면 게임을 시작하세요.`);
+  $('prog').style.width = '100%'; setSteps();
+  tone(784,.12); tone(1046,.2,.12,'sine',.1);
+}
+function newTarget(){
+  const r = Math.max(R_MIN, R_START*Math.pow(0.95, hits));
+  let p, tries = 0;
+  do { p = {x:.1+Math.random()*.8, y:.1+Math.random()*.8}; tries++; } while(Math.hypot(p.x-dec.x, p.y-dec.y) < .3 && tries < 30);
+  target = {x:p.x, y:p.y, r}; tgtDist = Math.hypot(p.x-dec.x, p.y-dec.y); dwellT = 0;
+}
+function startCountdown(){
+  audio(); phase = 'countdown'; tPhase = 0; result = null;
+  hits = 0; points = 0; combo = 0; bits = 0; lastHitT = -9; particles = []; floaters = [];
+  dec = {x:.5,y:.5}; trail = []; $('score').textContent = 0;
+  setMain('게임 중…', false, true); $('btnRecal').disabled = true; $('nSel').disabled = true;
+  setMsg('🎯 <b>보라색 커서</b>를 과녁 안에 잠깐 머물게 하면 득점! 빨리 연속으로 맞히면 <b>콤보</b>, 과녁은 점점 작아져요.');
   setSteps();
 }
-function newTarget(){ target = {x:.12+Math.random()*.76, y:.12+Math.random()*.76}; dwellT = 0; }
-function startGame(){
-  phase = 'game'; tPhase = 0; score = 0; $('score').textContent = 0;
-  dec = {x:.5,y:.5}; trail = []; newTarget();
-  $('btnGame').disabled = true; $('btnRecal').disabled = true;
-  setMsg('🎯 <b>보라색 커서</b>를 과녁에 잠깐 머물게 하면 득점! 30초 동안 몇 개 맞힐까요?');
-  setSteps();
+function startGame(){ phase = 'game'; tPhase = 0; newTarget(); tone(988,.25,.14); }
+function grade(bps){
+  if(bps >= 1.8) return ['🚀','뉴로 파일럿'];
+  if(bps >= 1.2) return ['🧠','BCI 엔지니어'];
+  if(bps >= 0.6) return ['🔬','신경과학자'];
+  return ['🧪','인턴 연구원'];
 }
 function endGame(){
-  const key = 'neurocursor-best-' + N, best = Number(localStorage.getItem(key) || 0);
-  let txt = `⏱️ 끝! 뉴런 ${N}개로 <b>${score}개</b> 맞혔어요.`;
-  if(score > best){ localStorage.setItem(key, score); txt += ' 🏆 최고 기록!'; beep(1046); }
-  showBest();
-  setMsg(txt + ' 전극 수를 바꿔서 다시 도전해 보세요.');
-  phase = 'decode'; tPhase = 0; $('btnGame').disabled = false; $('btnRecal').disabled = false; setSteps();
+  const key = 'neurocursor-best2-' + N, best = Number(localStorage.getItem(key) || 0);
+  const bps = bits/GAME_SEC, isBest = points > best;
+  if(isBest) localStorage.setItem(key, points);
+  gamesPlayed++; showBest();
+  result = {hits, points, bps, acc, isBest, g:grade(bps), t:performance.now()};
+  $('itr').textContent = bps.toFixed(2);
+  phase = 'decode'; tPhase = 0;
+  setMain('🎯 다시 도전', true); $('btnRecal').disabled = false; $('nSel').disabled = false;
+  setMsg(`⏱️ 끝! 뉴런 ${N}개로 <b>${hits}개</b> 맞혀 <b>${points}점</b>, 정보 전송률 <b>${bps.toFixed(2)} bits/s</b>.${isBest?' 🏆 최고 기록!':''} 전극 수를 바꿔서 다시 도전해 보세요.`);
+  setSteps();
+  if(isBest){ [784,988,1175,1568].forEach((f,i)=>tone(f,.22,.13,'triangle',i*.11)); }
+  else { tone(659,.2); tone(523,.3,.12,'sine',.15); }
 }
-function showBest(){ $('best').textContent = localStorage.getItem('neurocursor-best-' + N) || 0; }
-function resetAll(){
-  makeNeurons(Number($('nSel').value)); phase = 'intro'; W = null; rasterBins = []; trail = [];
-  $('btnMain').disabled = false; $('btnGame').disabled = true; $('btnRecal').disabled = true;
-  $('prog').style.width = '0'; $('acc').textContent = '—'; showBest(); setSteps();
-  setMsg(`👋 가상의 뇌에 <b>전극 ${N}개</b>를 심었어요. 먼저 <b>보정</b>으로 뉴런이 어떻게 반응하는지 배워야 해요.`);
-}
-$('btnMain').onclick = startCalib;
+function showBest(){ $('best').textContent = localStorage.getItem('neurocursor-best2-' + N) || 0; }
+$('btnMain').onclick = () => { if(phase === 'intro') startCalib(); else if(phase === 'decode') startCountdown(); };
 $('btnRecal').onclick = startCalib;
-$('btnGame').onclick = startGame;
 $('nSel').onchange = resetAll;
+$('snd').onchange = e => { if(e.target.checked) audio(); };
+$('sfx').onchange = e => { if(e.target.checked) audio(); };
+
+/* ================== 효과 ================== */
+function burst(x, y, color, n=26){
+  for(let i=0;i<n;i++){ const a = Math.random()*2*Math.PI, s = .15+Math.random()*.55;
+    particles.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1, color}); }
+}
 
 /* ================== 한 bin(50ms) 계산 ================== */
 function tick(){
@@ -279,91 +351,279 @@ function tick(){
   prevHand = {x:hand.x, y:hand.y};
   vx = Math.max(-4, Math.min(4, vx)); vy = Math.max(-4, Math.min(4, vy));
 
-  const spikes = fire(vx, vy);
+  const spikes = firePop(neurons, vx, vy);
   for(let i=0;i<N;i++) feat[i] = 0.5*feat[i] + 0.5*spikes[i];     // 짧게 평활화
   rasterBins.push(spikes); if(rasterBins.length > RASTER_SEC/DT) rasterBins.shift();
-  if($('snd').checked && actx) for(let i=0;i<Math.min(3,N);i++) for(let k=0;k<spikes[i];k++) click(Math.random()*DT);
+  if($('snd').checked && actx){                                    // 서로 다른 방향을 좋아하는 뉴런 3개의 소리
+    [0, Math.floor(N/3), Math.floor(2*N/3)].forEach((j,k) => { const i = order[j];
+      for(let s=0;s<spikes[i];s++) click(Math.random()*DT, k-1); });
+  }
+  // 집단 벡터: 각 뉴런이 (평소보다 더 발화한 만큼) 자기 방향으로 투표
+  let px = 0, py = 0;
+  for(let i=0;i<N;i++){ const ex = feat[i] - neurons[i].base*DT; px += ex*neurons[i].cx; py += ex*neurons[i].cy; }
+  const sc = N*GAIN*DT/2;
+  vPV = [vPV[0]*.6 + .4*px/sc, vPV[1]*.6 + .4*py/sc];
+  vHand = [vHand[0]*.6 + .4*vx, vHand[1]*.6 + .4*vy];
 
   if(phase === 'calib'){
     X.push([...feat, 1]); Y.push([vx, vy]);
-    tPhase += DT; target = calibTarget(tPhase);
+    if(Math.hypot(vx,vy) > .05) calibMove++;
+    if(Math.hypot(hand.x-target.x, hand.y-target.y) < R_START*1.6) calibOn++;
+    tPhase += DT; target = {...pathAt(calibPath, CALIB_SEC, Math.min(tPhase, CALIB_SEC)), r:R_START};
     $('prog').style.width = Math.min(100, tPhase/CALIB_SEC*100) + '%';
-    if(tPhase >= CALIB_SEC) startDecode();
-  } else if(phase === 'decode' || phase === 'game'){
-    const [dvx, dvy] = decode(feat);
-    dec.x = Math.min(1, Math.max(0, dec.x + dvx*DT));
-    dec.y = Math.min(1, Math.max(0, dec.y + dvy*DT));
-    trail.push({x:dec.x, y:dec.y}); if(trail.length > 30) trail.shift();
-    hist.push([vx, vy, dvx, dvy]); if(hist.length > 80) hist.shift();
-    const moving = hist.filter(h => Math.hypot(h[0],h[1]) > .05).length > 20;
-    if(moving){
-      const cx = corr(hist.map(h=>h[0]), hist.map(h=>h[2])), cy = corr(hist.map(h=>h[1]), hist.map(h=>h[3]));
-      const vals = [cx,cy].filter(v => v !== null);
-      if(vals.length){ acc = Math.max(0, vals.reduce((a,b)=>a+b,0)/vals.length);
-        $('acc').textContent = Math.round(acc*100) + '%'; }
-    }
-    if(phase === 'game'){
-      tPhase += DT; $('prog').style.width = Math.max(0, 100 - tPhase/GAME_SEC*100) + '%';
-      if(Math.hypot(dec.x-target.x, dec.y-target.y) < HIT_R){
-        dwellT += DT;
-        if(dwellT >= DWELL){ score++; $('score').textContent = score; beep(880); newTarget(); }
-      } else dwellT = Math.max(0, dwellT - DT);
-      if(tPhase >= GAME_SEC) endGame();
-    }
+    if(tPhase >= CALIB_SEC) endCalib();
+    return;
+  }
+  if(!W) return;
+  const [dvx, dvy] = decodeW(W, feat, N);
+  vDec = [vDec[0]*.6 + .4*dvx, vDec[1]*.6 + .4*dvy];
+  dec.x = Math.min(1, Math.max(0, dec.x + dvx*DT));
+  dec.y = Math.min(1, Math.max(0, dec.y + dvy*DT));
+  trail.push({x:dec.x, y:dec.y}); if(trail.length > 40) trail.shift();
+  hist.push([vx, vy, dvx, dvy]); if(hist.length > 120) hist.shift();
+  if(hist.filter(h => Math.hypot(h[0],h[1]) > .05).length > 30){
+    const cx = corr(hist.map(h=>h[0]), hist.map(h=>h[2])), cy = corr(hist.map(h=>h[1]), hist.map(h=>h[3]));
+    const vals = [cx,cy].filter(v => v !== null);
+    if(vals.length){ acc = Math.max(0, vals.reduce((a,b)=>a+b,0)/vals.length); $('acc').textContent = Math.round(acc*100) + '%'; }
+  }
+  if(phase === 'countdown'){
+    const before = Math.ceil(COUNT_SEC - tPhase); tPhase += DT; const after = Math.ceil(COUNT_SEC - tPhase);
+    if(after !== before && after > 0) tone(523,.12);
+    if(tPhase === DT) tone(523,.12);
+    $('prog').style.width = '100%';
+    if(tPhase >= COUNT_SEC) startGame();
+  } else if(phase === 'game'){
+    tPhase += DT; $('prog').style.width = Math.max(0, 100 - tPhase/GAME_SEC*100) + '%';
+    if(Math.hypot(dec.x-target.x, dec.y-target.y) < target.r){
+      dwellT += DT;
+      if(dwellT >= DWELL){
+        combo = (tPhase - lastHitT < 3) ? Math.min(5, combo+1) : 1; lastHitT = tPhase;
+        const gain = 100*combo; hits++; points += gain;
+        bits += Math.log2(tgtDist/(2*target.r) + 1);                  // 피츠의 법칙 난이도
+        $('score').textContent = points;
+        burst(target.x, target.y, combo > 1 ? '#ff9f43' : '#ffcc4d', 20 + combo*6);
+        floaters.push({x:target.x, y:target.y, txt:`+${gain}` + (combo>1 ? `  ×${combo}` : ''), life:1});
+        flash = .25; tone(660*Math.pow(1.12, combo-1), .16, .14, 'triangle');
+        newTarget();
+      }
+    } else dwellT = Math.max(0, dwellT - DT*2);
+    if(tPhase >= GAME_SEC) endGame();
   }
 }
 
 /* ================== 그리기 ================== */
 function fitCanvas(c){
   const dpr = window.devicePixelRatio || 1, r = c.getBoundingClientRect();
-  if(c.width !== Math.round(r.width*dpr) || c.height !== Math.round(r.height*dpr)){
-    c.width = Math.round(r.width*dpr); c.height = Math.round(r.height*dpr);
-  }
-  return [c.getContext('2d'), c.width, c.height, dpr];
+  const w = Math.max(1, Math.round(r.width*dpr)), h = Math.max(1, Math.round(r.height*dpr));
+  if(c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+  return [c.getContext('2d'), w, h, dpr];
 }
-function drawPad(){
+const hue = th => `hsl(${(th*180/Math.PI+360)%360},85%,62%)`;
+function rrect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function arrow(g, x0, y0, dx, dy, color, width){
+  const L = Math.hypot(dx,dy); if(L < 2) return;
+  const ux = dx/L, uy = dy/L, hs = Math.min(L*.4, width*4);
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = width; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+dx-ux*hs*.6, y0+dy-uy*hs*.6); g.stroke();
+  g.beginPath(); g.moveTo(x0+dx, y0+dy); g.lineTo(x0+dx-ux*hs-uy*hs*.6, y0+dy-uy*hs+ux*hs*.6);
+  g.lineTo(x0+dx-ux*hs+uy*hs*.6, y0+dy-uy*hs-ux*hs*.6); g.closePath(); g.fill();
+}
+let lastDraw = performance.now();
+function drawPad(now){
+  const fdt = Math.min(.05, (now - lastDraw)/1000); lastDraw = now;
   const [g, w, h, dpr] = fitCanvas(pad);
   g.clearRect(0,0,w,h);
-  g.strokeStyle = '#1b2240'; g.lineWidth = 1;
+  if(flash > 0){ g.fillStyle = `rgba(255,204,77,${flash*.25})`; g.fillRect(0,0,w,h); flash = Math.max(0, flash - fdt); }
+  g.strokeStyle = '#151b33'; g.lineWidth = 1;
   for(let i=1;i<10;i++){ g.beginPath(); g.moveTo(w*i/10,0); g.lineTo(w*i/10,h); g.moveTo(0,h*i/10); g.lineTo(w,h*i/10); g.stroke(); }
-  const P = p => [p.x*w, p.y*h];
-  if(phase !== 'intro' && phase !== 'decode'){
-    const [tx,ty] = P(target), R = HIT_R*w;
-    g.strokeStyle = '#ffcc4d'; g.lineWidth = 3*dpr;
-    g.beginPath(); g.arc(tx,ty,R,0,7); g.stroke();
+  const P = p => [p.x*w, p.y*h], F = s => `700 ${s*dpr}px 'Pretendard','Malgun Gothic',sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+
+  // 과녁
+  if(phase === 'calib' || phase === 'game'){
+    const [tx,ty] = P(target), R = target.r*w, pulse = 1 + .06*Math.sin(now/180);
+    const on = phase === 'calib' && Math.hypot(hand.x-target.x, hand.y-target.y) < R_START*1.6;
+    const col = on ? '#3ddc97' : '#ffcc4d';
+    g.shadowColor = col; g.shadowBlur = 18*dpr;
+    g.strokeStyle = col; g.lineWidth = 3*dpr;
+    g.beginPath(); g.arc(tx,ty,R*pulse,0,7); g.stroke();
     g.beginPath(); g.arc(tx,ty,R*.45,0,7); g.stroke();
-    if(phase === 'game' && dwellT > 0){ g.fillStyle = 'rgba(255,204,77,.35)';
-      g.beginPath(); g.moveTo(tx,ty); g.arc(tx,ty,R,-Math.PI/2,-Math.PI/2+2*Math.PI*dwellT/DWELL); g.fill(); }
+    g.shadowBlur = 0;
+    if(phase === 'game' && dwellT > 0){ g.fillStyle = 'rgba(255,204,77,.4)';
+      g.beginPath(); g.moveTo(tx,ty); g.arc(tx,ty,R,-Math.PI/2,-Math.PI/2+2*Math.PI*Math.min(1,dwellT/DWELL)); g.fill(); }
   }
-  if(phase === 'decode' || phase === 'game'){
-    g.strokeStyle = 'rgba(179,123,255,.35)'; g.lineWidth = 3*dpr; g.beginPath();
-    trail.forEach((p,i) => { const [x,y] = P(p); i ? g.lineTo(x,y) : g.moveTo(x,y); }); g.stroke();
-    const [dx,dy] = P(dec); g.fillStyle = '#b37bff'; g.beginPath(); g.arc(dx,dy,11*dpr,0,7); g.fill();
+  // 디코더 커서
+  if(W && phase !== 'calib' && phase !== 'intro'){
+    for(let i=1;i<trail.length;i++){ const [x0,y0] = P(trail[i-1]), [x1,y1] = P(trail[i]);
+      g.strokeStyle = `rgba(179,123,255,${i/trail.length*.6})`; g.lineWidth = 4*dpr*i/trail.length; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); }
+    const [dx,dy] = P(dec);
+    g.shadowColor = '#b37bff'; g.shadowBlur = 20*dpr; g.fillStyle = '#b37bff';
+    g.beginPath(); g.arc(dx,dy,10*dpr,0,7); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(dx,dy,3.5*dpr,0,7); g.fill();
   }
-  if(!(phase === 'game' && $('hide').checked)){
-    const [hx,hy] = P(hand); g.strokeStyle = '#58c4ff'; g.lineWidth = 3*dpr;
-    g.beginPath(); g.arc(hx,hy,13*dpr,0,7); g.stroke();
+  // 내 손
+  const showHand = everTouched && !((phase === 'game' || phase === 'countdown') && $('hide').checked);
+  if(showHand){ const [hx,hy] = P(hand); g.strokeStyle = '#58c4ff'; g.lineWidth = 2.5*dpr;
+    g.beginPath(); g.arc(hx,hy,13*dpr,0,7); g.stroke(); g.beginPath(); g.moveTo(hx-5*dpr,hy); g.lineTo(hx+5*dpr,hy); g.moveTo(hx,hy-5*dpr); g.lineTo(hx,hy+5*dpr); g.stroke(); }
+  // 입자, 점수 글자
+  particles = particles.filter(p => (p.life -= fdt*1.6) > 0);
+  particles.forEach(p => { p.x += p.vx*fdt; p.y += p.vy*fdt; p.vx *= .94; p.vy *= .94;
+    g.globalAlpha = p.life; g.fillStyle = p.color; g.beginPath(); g.arc(p.x*w, p.y*h, 3*dpr*p.life+1, 0, 7); g.fill(); });
+  g.globalAlpha = 1;
+  floaters = floaters.filter(f => (f.life -= fdt*1.1) > 0);
+  floaters.forEach(f => { g.globalAlpha = Math.min(1, f.life*1.5); g.fillStyle = '#fff'; g.font = F(18);
+    g.fillText(f.txt, f.x*w, (f.y - (1-f.life)*.08)*h - 26*dpr); });
+  g.globalAlpha = 1;
+
+  // HUD
+  if(phase === 'calib'){
+    hudPill(g, 12*dpr, 12*dpr, `보정 ${Math.max(0, CALIB_SEC - tPhase).toFixed(0)}초`, dpr, F);
+    if(tPhase < 3 || !touchingRecently()){ g.fillStyle = 'rgba(232,236,248,.85)'; g.font = F(15);
+      g.fillText(matchMedia('(pointer:coarse)').matches ? '👆 손가락을 대고 노란 과녁을 따라가요' : '🖱️ 마우스로 노란 과녁을 따라가요', w/2, h - 28*dpr); }
+  }
+  if(phase === 'game'){
+    const left = Math.max(0, GAME_SEC - tPhase);
+    hudPill(g, 12*dpr, 12*dpr, `⏱ ${left.toFixed(1)}`, dpr, F, left < 5 ? '#ff6b6b' : null);
+    g.textAlign = 'right'; g.font = F(16); g.fillStyle = '#fff';
+    g.fillText(`${points}점`, w - 14*dpr, 26*dpr);
+    if(combo > 1 && tPhase - lastHitT < 3){ g.fillStyle = '#ff9f43'; g.font = F(13); g.fillText(`콤보 ×${combo}`, w - 14*dpr, 48*dpr); }
+    g.textAlign = 'center';
+  }
+  if(phase === 'countdown'){
+    const n = Math.ceil(COUNT_SEC - tPhase), fr = (COUNT_SEC - tPhase) % 1;
+    g.fillStyle = 'rgba(7,10,20,.45)'; g.fillRect(0,0,w,h);
+    g.fillStyle = '#fff'; g.font = F(60 + 40*fr); g.fillText(n, w/2, h/2);
+    g.font = F(14); g.fillStyle = '#c9b6ff'; g.fillText('보라색 커서만 보고 조종하세요', w/2, h/2 + 70*dpr);
   }
   if(phase === 'intro'){
-    g.fillStyle = '#9aa3c0'; g.font = `${15*dpr}px sans-serif`; g.textAlign = 'center';
-    g.fillText('여기가 조종 패드예요', w/2, h/2 - 10*dpr);
-    g.fillText('▶ 보정 시작을 눌러 주세요', w/2, h/2 + 16*dpr);
+    g.fillStyle = 'rgba(232,236,248,.9)'; g.font = F(17); g.fillText('여기가 조종 패드예요', w/2, h*.38);
+    g.fillStyle = '#98a1bf'; g.font = F(14);
+    g.fillText('아래 ▶ 보정 시작을 누르고', w/2, h*.38 + 30*dpr);
+    g.fillText('노란 과녁을 15초 동안 따라가세요', w/2, h*.38 + 52*dpr);
   }
+  if(phase === 'decode' && !result){
+    g.fillStyle = 'rgba(201,182,255,.55)'; g.font = F(13);
+    g.fillText('자유 조종 중 · 손을 움직이면 보라색 커서가 뉴런 신호로 따라와요', w/2, h - 18*dpr);
+  }
+  if(result) drawResult(g, w, h, dpr, F, now);
+}
+let lastTouchT = 0;
+function touchingRecently(){ if(touching || Math.hypot(vHand[0],vHand[1]) > .05) lastTouchT = performance.now(); return performance.now() - lastTouchT < 1500; }
+function hudPill(g, x, y, txt, dpr, F, color){
+  g.font = F(15); const tw = g.measureText(txt).width + 20*dpr;
+  g.fillStyle = 'rgba(7,10,20,.7)'; rrect(g, x, y, tw, 28*dpr, 14*dpr); g.fill();
+  g.fillStyle = color || '#fff'; g.textAlign = 'left'; g.fillText(txt, x + 10*dpr, y + 14*dpr); g.textAlign = 'center';
+}
+function drawResult(g, w, h, dpr, F, now){
+  const a = Math.min(1, (now - result.t)/300);
+  g.globalAlpha = a; g.fillStyle = 'rgba(7,10,20,.78)'; g.fillRect(0,0,w,h);
+  const cw = Math.min(w*.84, 340*dpr), ch = Math.min(h*.8, 290*dpr), x = (w-cw)/2, y = (h-ch)/2;
+  g.fillStyle = '#171c30'; g.strokeStyle = '#b37bff'; g.lineWidth = 2*dpr; rrect(g, x, y, cw, ch, 18*dpr); g.fill(); g.stroke();
+  const cxm = w/2; let yy = y + ch*.16;
+  g.font = F(34); g.fillStyle = '#fff'; g.fillText(result.g[0], cxm, yy);
+  yy += ch*.15; g.font = F(19); g.fillStyle = '#c9b6ff'; g.fillText(result.g[1], cxm, yy);
+  yy += ch*.17; g.font = F(30); g.fillStyle = '#ffcc4d'; g.fillText(`${result.points}점`, cxm, yy);
+  if(result.isBest){ g.font = F(13); g.fillStyle = '#3ddc97'; g.fillText('🏆 최고 기록!', cxm, yy + ch*.1); }
+  const items = [['맞힌 과녁', result.hits + '개'], ['디코더 정확도', Math.round(result.acc*100) + '%'], ['전송률', result.bps.toFixed(2) + ' b/s']];
+  items.forEach((it,i) => { const ix = x + cw*(i+.5)/3, iy = y + ch*.8;
+    g.font = F(11); g.fillStyle = '#98a1bf'; g.fillText(it[0], ix, iy);
+    g.font = F(16); g.fillStyle = '#fff'; g.fillText(it[1], ix, iy + 20*dpr); });
+  g.font = F(11); g.fillStyle = '#6f789a'; g.fillText('패드를 터치하면 닫혀요', cxm, y + ch + 16*dpr);
+  g.globalAlpha = 1;
+}
+function drawMap(){
+  const [g, w, h, dpr] = fitCanvas($('map'));
+  g.clearRect(0,0,w,h);
+  const cx = w/2, cy = h/2, R0 = Math.min(w,h)*.38;
+  g.strokeStyle = '#262d4a'; g.lineWidth = 1*dpr;
+  [1,.5].forEach(k => { g.beginPath(); g.arc(cx,cy,R0*k,0,7); g.stroke(); });
+  g.beginPath(); g.moveTo(cx-R0,cy); g.lineTo(cx+R0,cy); g.moveTo(cx,cy-R0); g.lineTo(cx,cy+R0); g.stroke();
+  // 디코더가 찾은 방향 (가중치 방향)
+  if(W){ for(let i=0;i<N;i++){ const a = Math.atan2(W[i][1], W[i][0]);
+    g.strokeStyle = 'rgba(179,123,255,.55)'; g.lineWidth = 1.5*dpr; g.beginPath();
+    g.moveTo(cx+Math.cos(a)*R0*1.08, cy+Math.sin(a)*R0*1.08); g.lineTo(cx+Math.cos(a)*R0*1.2, cy+Math.sin(a)*R0*1.2); g.stroke(); } }
+  for(let i=0;i<N;i++){ const nr = neurons[i];
+    const act = Math.max(0, Math.min(1, (feat[i] - nr.base*DT*.5)/(nr.gain*DT*1.5)));
+    const x = cx + nr.cx*R0, y = cy + nr.cy*R0, r = (N > 48 ? 2.5 : 4)*dpr*(1 + act*1.2);
+    g.globalAlpha = .25 + .75*act; g.fillStyle = hue(nr.th);
+    if(act > .5){ g.shadowColor = hue(nr.th); g.shadowBlur = 12*dpr*act; }
+    g.beginPath(); g.arc(x,y,r,0,7); g.fill(); g.shadowBlur = 0;
+  }
+  g.globalAlpha = 1;
+  const S = R0/2.2, cl = v => { const L = Math.hypot(v[0],v[1]), m = Math.min(L, 2.4); return L ? [v[0]/L*m*S, v[1]/L*m*S] : [0,0]; };
+  const a1 = cl(vHand), a2 = cl(vPV), a3 = cl(vDec);
+  arrow(g, cx, cy, a1[0], a1[1], '#58c4ff', 2*dpr);
+  arrow(g, cx, cy, a2[0], a2[1], '#ff9f43', 3.5*dpr);
+  if(W && phase !== 'calib') arrow(g, cx, cy, a3[0], a3[1], '#b37bff', 2.5*dpr);
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(cx,cy,2.5*dpr,0,7); g.fill();
 }
 function drawRaster(){
   const [g, w, h, dpr] = fitCanvas($('raster'));
   g.clearRect(0,0,w,h);
-  const rows = N, rh = h/rows, bins = RASTER_SEC/DT, bw = w/bins;
-  const off = bins - rasterBins.length;
-  g.fillStyle = '#58c4ff';
-  rasterBins.forEach((b,t) => {
-    for(let i=0;i<rows;i++) for(let k=0;k<b[i];k++){
-      const x = (off + t)*bw + k*1.5*dpr;
-      g.fillRect(x, i*rh + rh*.15, Math.max(1, dpr*1.2), Math.max(1, rh*.7));
-    }
+  const rows = N, rh = h/rows, bins = RASTER_SEC/DT, bw = w/bins, off = bins - rasterBins.length;
+  for(let r=0;r<rows;r++){ const i = order[r]; g.fillStyle = hue(neurons[i].th);
+    rasterBins.forEach((b,t) => { for(let k=0;k<b[i];k++)
+      g.fillRect((off+t)*bw + k*1.5*dpr, r*rh + rh*.12, Math.max(1, dpr*1.3), Math.max(1, rh*.76)); }); }
+  const txt = `뉴런 ${N}개 · 한 줄 = 뉴런 하나 (좋아하는 방향 순) · 막대 = 스파이크`;
+  g.font = `${10.5*dpr}px 'Malgun Gothic',sans-serif`; const tw = g.measureText(txt).width;
+  g.fillStyle = 'rgba(7,10,20,.8)'; g.fillRect(4*dpr, 4*dpr, tw + 10*dpr, 17*dpr);
+  g.fillStyle = '#c6cde4'; g.textBaseline = 'middle'; g.fillText(txt, 9*dpr, 12.5*dpr);
+}
+
+/* ================== 전극 수 실험 ================== */
+const EXP_NS = [8,16,32,64,96], EXP_REP = 8;
+let expRes = null;
+function simTrial(n){
+  const ns = makePop(n), f = ns.map(x => x.base*DT);
+  const path = makePath(22), T1 = CALIB_SEC, T2 = 10, tot = T1 + T2;
+  let ph = {x:.5,y:.5}; const Xs = [], Ys = [], test = [];
+  for(let t=0;t<tot;t+=DT){
+    const tg = pathAt(path, tot, t);
+    const nh = {x:ph.x + (tg.x-ph.x)*.5 + (Math.random()-.5)*.004, y:ph.y + (tg.y-ph.y)*.5 + (Math.random()-.5)*.004};
+    let vx = Math.max(-4, Math.min(4, (nh.x-ph.x)/DT)), vy = Math.max(-4, Math.min(4, (nh.y-ph.y)/DT)); ph = nh;
+    const sp = firePop(ns, vx, vy); for(let i=0;i<n;i++) f[i] = .5*f[i] + .5*sp[i];
+    if(t < T1){ Xs.push([...f, 1]); Ys.push([vx, vy]); } else test.push([vx, vy, [...f]]);
+  }
+  const Wt = fitRidge(Xs, Ys, n), out = test.map(r => decodeW(Wt, r[2], n));
+  const cx = corr(test.map(r=>r[0]), out.map(o=>o[0])), cy = corr(test.map(r=>r[1]), out.map(o=>o[1]));
+  return ((cx||0) + (cy||0))/2;
+}
+function runExp(){
+  const btn = $('btnExp'); btn.disabled = true; btn.textContent = '실험 중…';
+  expRes = EXP_NS.map(n => ({n, vals:[]}));
+  let k = 0; const total = EXP_NS.length*EXP_REP;
+  (function step(){
+    const e = expRes[Math.floor(k/EXP_REP)]; e.vals.push(simTrial(e.n)); k++;
+    drawExp(k/total);
+    if(k < total) setTimeout(step, 0);
+    else { btn.disabled = false; btn.textContent = '↺ 다시 실험하기'; }
+  })();
+}
+$('btnExp').onclick = runExp;
+function drawExp(prog=1){
+  const [g, w, h, dpr] = fitCanvas($('exp'));
+  g.clearRect(0,0,w,h);
+  const L = 40*dpr, Rr = w - 12*dpr, T = 28*dpr, B = h - 30*dpr, Y = v => B - (B-T)*v;
+  g.font = `${10.5*dpr}px 'Malgun Gothic',sans-serif`; g.textBaseline = 'middle';
+  [0,.25,.5,.75,1].forEach(v => { g.strokeStyle = '#1b2240'; g.lineWidth = 1; g.beginPath(); g.moveTo(L,Y(v)); g.lineTo(Rr,Y(v)); g.stroke();
+    g.fillStyle = '#6f789a'; g.textAlign = 'right'; g.fillText(Math.round(v*100)+'%', L-6*dpr, Y(v)); });
+  g.setLineDash([5*dpr,4*dpr]); g.strokeStyle = '#3ddc97'; g.beginPath(); g.moveTo(L,Y(.7)); g.lineTo(Rr,Y(.7)); g.stroke(); g.setLineDash([]);
+  const bwid = (Rr-L)/EXP_NS.length;
+  EXP_NS.forEach((n,i) => { const x = L + bwid*(i+.5);
+    g.fillStyle = '#98a1bf'; g.textAlign = 'center'; g.fillText(`${n}개`, x, B + 15*dpr);
+    const e = expRes && expRes[i]; if(!e || !e.vals.length) return;
+    const m = e.vals.reduce((a,b)=>a+b,0)/e.vals.length, bw = bwid*.5;
+    const grd = g.createLinearGradient(0, Y(m), 0, B); grd.addColorStop(0,'#b37bff'); grd.addColorStop(1,'#58c4ff55');
+    g.fillStyle = grd; rrect(g, x-bw/2, Y(m), bw, B-Y(m), 6*dpr); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.55)'; e.vals.forEach(v => { g.beginPath(); g.arc(x + (Math.random()-.5)*bw*.6, Y(v), 2*dpr, 0, 7); g.fill(); });
+    g.fillStyle = '#fff'; g.font = `700 ${12*dpr}px 'Malgun Gothic',sans-serif`; g.fillText(Math.round(m*100)+'%', x, Y(m) - 10*dpr);
+    g.font = `${10.5*dpr}px 'Malgun Gothic',sans-serif`;
   });
-  g.fillStyle = '#9aa3c0'; g.font = `${11*dpr}px sans-serif`;
-  g.fillText(`뉴런 ${N}개 · 한 줄 = 뉴런 하나, 세로 막대 = 스파이크`, 6*dpr, h - 6*dpr);
+  { const t = '목표 70% (완료 기준)'; g.font = `700 ${10.5*dpr}px 'Malgun Gothic',sans-serif`; const tw = g.measureText(t).width;
+    g.fillStyle = 'rgba(7,10,20,.85)'; rrect(g, L + 2*dpr, Y(.7) + 4*dpr, tw + 10*dpr, 16*dpr, 5*dpr); g.fill();
+    g.fillStyle = '#3ddc97'; g.textAlign = 'left'; g.fillText(t, L + 7*dpr, Y(.7) + 12*dpr); }
+  if(!expRes){ g.fillStyle = '#98a1bf'; g.textAlign = 'center'; g.fillText('▶ 실험 돌리기를 누르면 전극 수별 디코더 정확도가 나와요', (L+Rr)/2, (T+B)/2); }
+  if(prog < 1){ g.fillStyle = '#b37bff'; g.fillRect(L, h-3*dpr, (Rr-L)*prog, 3*dpr); }
 }
 
 /* ================== 메인 루프 ================== */
@@ -371,10 +631,11 @@ let last = performance.now(), accT = 0;
 function loop(now){
   accT += Math.min(0.25, (now - last)/1000); last = now;
   while(accT >= DT){ tick(); accT -= DT; }
-  drawPad(); drawRaster();
+  drawPad(now); drawMap(); drawRaster();
   requestAnimationFrame(loop);
 }
-resetAll();
+resetAll(); drawExp();
+addEventListener('resize', () => drawExp());
 requestAnimationFrame(loop);
 </script>
 </body>
